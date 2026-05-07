@@ -14,7 +14,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function CreateProfileScreen({ navigation }) {
+export default function CreateProfileScreen({ navigation }: any) {
 
   const translateY = useRef(new Animated.Value(300)).current;
 
@@ -27,7 +27,7 @@ export default function CreateProfileScreen({ navigation }) {
     role: '',
   });
 
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<any>({});
 
   useEffect(() => {
     Animated.timing(translateY, {
@@ -39,7 +39,7 @@ export default function CreateProfileScreen({ navigation }) {
 
   // VALIDAÇÃO
   function validate() {
-    let newErrors = {};
+    let newErrors: any = {};
 
     if (!form.name) newErrors.name = 'Nome é obrigatório';
     if (!form.email) newErrors.email = 'Email é obrigatório';

@@ -8,7 +8,7 @@ import {
   Image
 } from 'react-native';
 
-export default function LoginScreen({ navigation }) {
+export default function LoginScreen({ navigation }: any) {
   return (
     <ImageBackground
       source={require('../assets/map.png')}
