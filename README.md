@@ -1,66 +1,107 @@
 # 🚀 Network Dev
 
-Aplicativo mobile híbrido desenvolvido com **React Native + Expo + TypeScript**, focado em conectar desenvolvedores próximos através de networking, descoberta de perfis tech e interação entre profissionais da área de tecnologia.
+Aplicativo mobile híbrido desenvolvido com React Native + Expo + TypeScript, com foco em networking entre desenvolvedores através de descoberta de perfis próximos, integração social e experiência moderna de UI/UX.
 
 ---
 
 # 📱 Sobre o Projeto
 
-O **Network Dev** foi criado com a proposta de aproximar estudantes, desenvolvedores e profissionais de tecnologia através de uma plataforma mobile moderna e intuitiva.
+O **Network Dev** foi criado com a proposta de conectar estudantes, desenvolvedores e profissionais da área de tecnologia através de uma plataforma mobile moderna, intuitiva e escalável.
 
-O aplicativo permite:
-- criação de perfil profissional;
-- exibição de stack tecnológica;
-- descoberta de devs próximos;
-- fortalecimento do networking na área tech.
+O projeto possui:
+
+- autenticação com Firebase;
+- navegação entre telas;
+- radar interativo;
+- detecção visual de desenvolvedores;
+- interface premium responsiva;
+- estrutura preparada para integração com backend Java Spring Boot.
 
 ---
 
 # ✨ Funcionalidades Atuais
 
-## 🔐 Tela de Login
-- Interface moderna
-- Inputs personalizados
-- Login social (interface)
-- Navegação para cadastro
+## 🔐 Autenticação Firebase
+
+- Cadastro de usuários
+- Login com email e senha
+- Logout funcional
+- Persistência de autenticação
+- Integração com Firebase Authentication
 
 ---
 
-## 👤 Tela de Cadastro
-- Criação de perfil
-- Validação de campos obrigatórios
-- Animação suave
-- Layout premium inspirado em apps modernos
-- Estrutura preparada para integração backend
+## 👤 Perfil do Usuário
+
+- Tela de criação de perfil
+- Nome profissional
+- Stack tecnológica
+- Cargo/Função
+- Bio
+- Foto de perfil
+- Estrutura pronta para API backend
+
+---
+
+## 📡 Radar Inteligente
+
+- Radar animado
+- Beam rotacionando
+- Desenvolvedores detectados visualmente
+- Interface inspirada em apps premium
+
+---
+
+## 🤝 Networking
+
+- Cards de desenvolvedores
+- Compatibilidade por porcentagem
+- Status online
+- Navegação para tela de conexão
 
 ---
 
 ## 🎨 UI/UX
+
+- Dark mode
+- Interface futurista
 - Glassmorphism
-- Background interativo
 - Layout responsivo
-- Navegação fluida
-- Hierarquia visual moderna
+- Compatível com:
+  - Android
+  - Expo Go
+  - Web
 
 ---
 
 # 🛠 Tecnologias Utilizadas
 
 ## 📱 Mobile
+
 - React Native
 - Expo
 
 ## 💻 Linguagem
+
 - TypeScript
 
+## 🔥 Firebase
+
+- Firebase Authentication
+- Firebase App
+
 ## 🧭 Navegação
+
 - React Navigation
 
 ## 🎨 Interface
+
 - React Native StyleSheet
 - Expo Vector Icons
+- Animated API
 
 ## 🔄 Versionamento
+
 - Git
 - GitHub
 
@@ -69,31 +110,43 @@ O aplicativo permite:
 # 📂 Estrutura do Projeto
 
 ```bash
-network-dev/
+mobile/
 │
 ├── assets/
 │
 ├── src/
+│   │
 │   ├── assets/
 │   │   ├── logo.png
 │   │   └── map.png
 │   │
 │   ├── components/
 │   │
+│   ├── config/
+│   │   └── firebase.ts
+│   │
 │   ├── navigation/
 │   │   └── AppNavigator.tsx
 │   │
 │   ├── screens/
 │   │   ├── LoginScreen.tsx
-│   │   └── CreateProfileScreen.tsx
+│   │   ├── HomeScreen.tsx
+│   │   ├── CreateProfileScreen.tsx
+│   │   ├── ConnectionScreen.tsx
+│   │   └── MyProfileScreen.tsx
 │   │
 │   ├── services/
+│   │   ├── api.ts
+│   │   ├── auth.ts
+│   │   └── userService.ts
 │   │
 │   └── styles/
 │
-├── App.tsx
+├── .gitignore
 ├── app.json
+├── App.tsx
 ├── babel.config.js
+├── index.js
 ├── package.json
 ├── package-lock.json
 ├── tsconfig.json
@@ -102,20 +155,48 @@ network-dev/
 
 ---
 
-# 🚀 Como Executar o Projeto
+# 🔥 Configuração Firebase
 
-## 📌 Pré-requisitos
+O projeto utiliza Firebase Authentication.
 
-Antes de começar, é necessário ter instalado:
+## 📌 Criar arquivo Firebase
 
-- Node.js
-- Git
-- VS Code
-- Expo Go (Android/iOS)
+Dentro de:
+
+```bash
+src/config/
+```
+
+crie:
+
+```bash
+firebase.ts
+```
 
 ---
 
-# 📥 Clonar o Repositório
+## 📄 Estrutura do firebase.ts
+
+```ts
+import { initializeApp } from 'firebase/app';
+
+const firebaseConfig = {
+  apiKey: 'SUA_API_KEY',
+  authDomain: 'SEU_AUTH_DOMAIN',
+  projectId: 'SEU_PROJECT_ID',
+  storageBucket: 'SEU_STORAGE_BUCKET',
+  messagingSenderId: 'SEU_MESSAGING_SENDER_ID',
+  appId: 'SEU_APP_ID',
+};
+
+export const app = initializeApp(firebaseConfig);
+```
+
+---
+
+# 🚀 Como Clonar o Projeto
+
+## 📥 Clonar Repositório
 
 ```bash
 git clone https://github.com/JoiceBsantos/network-dev.git
@@ -123,10 +204,10 @@ git clone https://github.com/JoiceBsantos/network-dev.git
 
 ---
 
-# 📂 Entrar na Pasta do Projeto
+# 📂 Entrar na Pasta
 
 ```bash
-cd network-dev
+cd network-dev/mobile
 ```
 
 ---
@@ -139,11 +220,9 @@ npm install
 
 ---
 
-# ▶ Executar o Projeto
+# ▶ Executar Projeto
 
-## ✅ Opção 1 — Rede Wi-Fi / Rede Local
-
-Utilize quando computador e celular estiverem conectados na mesma rede Wi-Fi:
+## ✅ Rede Local
 
 ```bash
 npx expo start
@@ -157,7 +236,7 @@ npx expo start --lan
 
 ---
 
-## ✅ Opção 2 — Redes corporativas ou problemas de conexão
+## ✅ Tunnel
 
 Caso a rede bloqueie conexões locais:
 
@@ -169,26 +248,51 @@ npx expo start --tunnel
 
 # 📱 Executar no Celular
 
-1. Instale o aplicativo **Expo Go**
-2. Conecte computador e celular na mesma rede
+1. Instale o aplicativo Expo Go
+2. Conecte celular e computador na mesma rede
 3. Escaneie o QR Code exibido no terminal
 
 ---
 
-# ⚠ Observações
+# ⚠ Problemas Comuns
 
-- Em algumas redes corporativas ou acadêmicas, o modo `--lan` pode apresentar bloqueios.
-- Caso isso aconteça, utilize:
-  
+## 🔴 Erro Firebase API KEY
+
+Verifique se:
+
+- o arquivo `firebase.ts` existe;
+- a API KEY está correta;
+- Authentication Email/Password está habilitado no Firebase.
+
+---
+
+## 🔴 Expo Go não conecta
+
+Use:
+
 ```bash
 npx expo start --tunnel
 ```
 
-- Se houver falha no `--tunnel`, recomenda-se utilizar um hotspot do celular.
+---
+
+## 🔴 Dependências quebradas
+
+Execute:
+
+```bash
+npm install
+```
+
+e depois:
+
+```bash
+npx expo install --fix
+```
 
 ---
 
-# 👩‍💻 Integrantes do Grupo
+# 👩‍💻 Integrantes
 
 - Joice Barbosa Santos
 - Emilly de Sousa
@@ -198,24 +302,37 @@ npx expo start --tunnel
 
 # 📚 Objetivo Acadêmico
 
-Projeto desenvolvido para fins acadêmicos com foco em:
+Projeto desenvolvido com foco em:
 
 - Desenvolvimento Mobile Híbrido
 - React Native
 - TypeScript
-- Navegação Mobile
+- Firebase Authentication
 - UI/UX
-- Versionamento com Git e GitHub
+- Navegação Mobile
+- Integração Front + Backend
 - Estruturação de aplicações modernas
+- Git e GitHub
 
 ---
 
 # 🚧 Status do Projeto
 
-Em desenvolvimento
+## 🟢 Em desenvolvimento
+
+Próximas implementações:
+
+- Integração Spring Boot
+- Bluetooth real
+- Detecção por proximidade
+- Chat entre usuários
+- Feed social
+- Sistema de conexões
+- Geolocalização
+- Integração ESP32
 
 ---
 
 # 📄 Licença
 
-Projeto desenvolvido para fins educacionais.
+Projeto desenvolvido para fins acadêmicos e educacionais.
