@@ -1,3 +1,5 @@
+import React, { useState } from 'react';
+
 import {
   View,
   Text,
@@ -5,10 +7,37 @@ import {
   ImageBackground,
   TextInput,
   TouchableOpacity,
-  Image
+  Image,
+  Alert,
 } from 'react-native';
 
+import { login } from '../services/auth';
+
 export default function LoginScreen({ navigation }: any) {
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  async function handleLogin() {
+    try {
+
+      const user = await login(email, password);
+
+      console.log('Usuário logado:', user.email);
+
+      navigation.navigate('Home');
+
+    } catch (error) {
+
+      console.log(error);
+
+      Alert.alert(
+        'Erro',
+        'Email ou senha inválidos'
+      );
+    }
+  }
+
   return (
     <ImageBackground
       source={require('../assets/map.png')}
@@ -47,6 +76,8 @@ export default function LoginScreen({ navigation }: any) {
               placeholder="Email"
               placeholderTextColor="#bbb"
               style={styles.input}
+              value={email}
+              onChangeText={setEmail}
             />
 
             <TextInput
@@ -54,9 +85,14 @@ export default function LoginScreen({ navigation }: any) {
               placeholderTextColor="#bbb"
               secureTextEntry
               style={styles.input}
+              value={password}
+              onChangeText={setPassword}
             />
 
-            <TouchableOpacity style={styles.button}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleLogin}
+            >
               <Text style={styles.buttonText}>Entrar</Text>
             </TouchableOpacity>
 
@@ -66,7 +102,9 @@ export default function LoginScreen({ navigation }: any) {
               <Text style={styles.googleText}>Entrar com Google</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => navigation.navigate('CreateProfile')}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('CreateProfile')}
+            >
               <Text style={styles.link}>Criar conta</Text>
             </TouchableOpacity>
 
@@ -98,12 +136,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    paddingTop: 30, 
+    paddingTop: 30,
   },
 
   /* HEADER */
   header: {
-    marginBottom: 35, 
+    marginBottom: 35,
     width: '100%',
     alignItems: 'center',
   },
@@ -115,11 +153,11 @@ const styles = StyleSheet.create({
   },
 
   logo: {
-    width: 110,          
+    width: 110,
     height: 110,
     resizeMode: 'contain',
-    marginRight: -35,   
-    marginTop: -30,     
+    marginRight: -35,
+    marginTop: -30,
   },
 
   textContainer: {
@@ -140,7 +178,7 @@ const styles = StyleSheet.create({
 
   subtitle: {
     color: '#aaa',
-    fontSize: 12,       
+    fontSize: 12,
     marginTop: 3,
     textAlign: 'center',
     maxWidth: 200,
@@ -172,7 +210,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     color: '#fff',
 
-    borderWidth: 1, 
+    borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.15)',
   },
 
@@ -182,7 +220,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
 
-    shadowColor: '#2979FF', 
+    shadowColor: '#2979FF',
     shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 6,
