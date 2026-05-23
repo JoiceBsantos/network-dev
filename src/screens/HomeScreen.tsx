@@ -544,25 +544,18 @@ export default function HomeScreen({ navigation }: any) {
 
                       </View>
 
-                      <View style={styles.bottomRow}>
-
-                      <Text style={styles.distance}>
-                        📍 {item.distance}
-                      </Text>
+                      <Text style={styles.distance}>📍 {item.distance}</Text>
 
                       <TouchableOpacity
                         style={styles.connectButton}
-                        onPress={() => navigation.navigate('Connection')
-                        }
+                        onPress={() => navigation.navigate('Connection')}
                       >
-                        <Text style={styles.connectText}>
-                          Conectar
-                        </Text>
-
+                        <Text style={styles.connectText}>Conectar</Text>
                       </TouchableOpacity>
 
-
                     </View>
+
+                  </TouchableOpacity>
 
                 )}
               />
@@ -606,7 +599,7 @@ const styles = StyleSheet.create({
   /* TOPO */
 
   topContainer: {
-    marginTop: 38,
+    marginTop: 55,
     marginBottom: 26,
 
     flexDirection: 'row',
@@ -616,13 +609,14 @@ const styles = StyleSheet.create({
 
   greeting: {
     color: '#FFFFFF',
-    fontSize: 21,
+    fontSize: 24,
     fontWeight: '700',
+    marginTop: 18,
   },
 
   welcome: {
     color: '#A7B1CB',
-    fontSize: 14,
+    fontSize: 16,
     marginTop: 4,
   },
 
@@ -1148,29 +1142,19 @@ const styles = StyleSheet.create({
 
   distance: {
     color: '#B5C0DA',
-
     fontSize: 14,
-
-    marginTop: 10,
   },
 
   connectButton: {
     backgroundColor: '#2563EB',
-
-    alignSelf: 'flex-end',
-
-    paddingHorizontal: 18,
     paddingVertical: 10,
-
-    borderRadius: 16,
-
-    marginTop: 16,
-
+    borderRadius: 14,
+    marginTop: 14,
+    alignItems: 'center',
     shadowColor: '#2563EB',
-    shadowOpacity: 0.45,
-    shadowRadius: 12,
-
-    elevation: 8,
+    shadowOpacity: 0.20,
+    shadowRadius: 8,
+    elevation: 4,
   },
 
   connectText: {
@@ -1182,7 +1166,7 @@ const styles = StyleSheet.create({
   },
 
   searchAgainButton: {
-    backgroundColor: '#1d4fd885',
+    backgroundColor: '#1d4fd8fa',
 
     flexDirection: 'row',
     alignItems: 'center',
@@ -1195,7 +1179,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 55,
 
-    shadowColor: '#2563EB',
+    shadowColor: '#2564ebdd',
     shadowOpacity: 0.25,
     shadowRadius: 10,
 
@@ -1209,15 +1193,5 @@ const styles = StyleSheet.create({
 
     fontSize: 15,
   },
-
-  bottomRow: {
-  flexDirection: 'row',
-
-  justifyContent: 'space-between',
-
-  alignItems: 'center',
-
-  marginTop: 12,
-},
 
 });

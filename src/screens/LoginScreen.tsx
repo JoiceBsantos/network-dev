@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,50 +8,69 @@ import {
   TouchableOpacity,
   Image,
   Alert,
-} from 'react-native';
+  Animated,
+  Easing,
+} from "react-native";
 
-import { login } from '../services/auth';
-
+import { login } from "../services/auth";
 export default function LoginScreen({ navigation }: any) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const fadeAnim = useState(new Animated.Value(0))[0];
+  const translateY = useState(new Animated.Value(40))[0];
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1200,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.ease),
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 1000,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.exp),
+      }),
+    ]).start();
+  }, []);
 
   async function handleLogin() {
     try {
-
       const user = await login(email, password);
 
-      console.log('Usuário logado:', user.email);
+      console.log("Usuário logado:", user.email);
 
-      navigation.navigate('Home');
-
+      navigation.navigate("Home");
     } catch (error) {
-
       console.log(error);
 
-      Alert.alert(
-        'Erro',
-        'Email ou senha inválidos'
-      );
+      Alert.alert("Erro", "Email ou senha inválidos");
     }
   }
 
   return (
     <ImageBackground
-      source={require('../assets/map.png')}
+      source={require("../assets/map.png")}
       style={styles.background}
       imageStyle={styles.image}
     >
-      <View style={styles.overlay}>
+      <Animated.View
+        style={[
+          styles.overlay,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY }],
+          },
+        ]}
+      >
         <View style={styles.container}>
-
           {/* HEADER */}
           <View style={styles.header}>
-
             <View style={styles.titleRow}>
               <Image
-                source={require('../assets/logo.png')}
+                source={require("../assets/logo.png")}
                 style={styles.logo}
               />
 
@@ -66,12 +84,10 @@ export default function LoginScreen({ navigation }: any) {
                 </Text>
               </View>
             </View>
-
           </View>
 
           {/* CARD */}
           <View style={styles.card}>
-
             <TextInput
               placeholder="Email"
               placeholderTextColor="#bbb"
@@ -89,10 +105,7 @@ export default function LoginScreen({ navigation }: any) {
               onChangeText={setPassword}
             />
 
-            <TouchableOpacity
-              style={styles.button}
-              onPress={handleLogin}
-            >
+            <TouchableOpacity style={styles.button} onPress={handleLogin}>
               <Text style={styles.buttonText}>Entrar</Text>
             </TouchableOpacity>
 
@@ -103,15 +116,13 @@ export default function LoginScreen({ navigation }: any) {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => navigation.navigate('CreateProfile')}
+              onPress={() => navigation.navigate("CreateProfile")}
             >
               <Text style={styles.link}>Criar conta</Text>
             </TouchableOpacity>
-
           </View>
-
         </View>
-      </View>
+      </Animated.View>
     </ImageBackground>
   );
 }
@@ -122,19 +133,19 @@ const styles = StyleSheet.create({
   },
 
   image: {
-    resizeMode: 'cover',
+    resizeMode: "cover",
   },
 
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(5,10,25,0.9)',
-    justifyContent: 'center',
+    backgroundColor: "rgba(5,10,25,0.9)",
+    justifyContent: "center",
   },
 
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
     paddingTop: 30,
   },
@@ -142,45 +153,45 @@ const styles = StyleSheet.create({
   /* HEADER */
   header: {
     marginBottom: 35,
-    width: '100%',
-    alignItems: 'center',
+    width: "100%",
+    alignItems: "center",
   },
 
   titleRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "center",
   },
 
   logo: {
-    width: 110,
-    height: 110,
-    resizeMode: 'contain',
-    marginRight: -35,
-    marginTop: -30,
+    width: 120,
+    height: 120,
+    resizeMode: "contain",
+    marginRight: -60,
+    marginTop: -50,
   },
 
   textContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   title: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginLeft: -2,
   },
 
   devText: {
-    color: '#4DA6FF',
+    color: "#4DA6FF",
   },
 
   subtitle: {
-    color: '#aaa',
+    color: "#aaa",
     fontSize: 12,
     marginTop: 3,
-    textAlign: 'center',
+    textAlign: "center",
     maxWidth: 200,
     lineHeight: 16,
     opacity: 0.9,
@@ -188,70 +199,70 @@ const styles = StyleSheet.create({
 
   /* CARD */
   card: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: "rgba(255,255,255,0.08)",
     borderRadius: 20,
     padding: 20,
-    width: '100%',
+    width: "100%",
     maxWidth: 400,
 
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: "rgba(255,255,255,0.2)",
 
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 10,
   },
 
   input: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: "rgba(255,255,255,0.08)",
     padding: 12,
     borderRadius: 10,
     marginBottom: 10,
-    color: '#fff',
+    color: "#fff",
 
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: "rgba(255,255,255,0.15)",
   },
 
   button: {
-    backgroundColor: '#2979FF',
+    backgroundColor: "#2979FF",
     padding: 15,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
 
-    shadowColor: '#2979FF',
+    shadowColor: "#2979FF",
     shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 6,
   },
 
   buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: "#fff",
+    fontWeight: "bold",
   },
 
   or: {
-    textAlign: 'center',
+    textAlign: "center",
     marginVertical: 10,
-    color: '#aaa',
+    color: "#aaa",
   },
 
   googleButton: {
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: "rgba(255,255,255,0.3)",
     padding: 12,
     borderRadius: 10,
-    alignItems: 'center',
+    alignItems: "center",
   },
 
   googleText: {
-    color: '#fff',
+    color: "#fff",
   },
 
   link: {
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 12,
-    color: '#4DA6FF',
+    color: "#4DA6FF",
   },
 });

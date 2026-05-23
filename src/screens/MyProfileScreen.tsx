@@ -6,321 +6,907 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-} from 'react-native';
+  ImageBackground,
+  Alert,
+} from "react-native";
 
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import { useState } from "react";
+
+import Ionicons from "react-native-vector-icons/Ionicons";
 
 export default function MyProfileScreen({ navigation }: any) {
+  const [isEditing, setIsEditing] = useState(false);
+
+  const [showStacks, setShowStacks] = useState(false);
+
+  const stackOptions = [
+    {
+      category: "Front-End",
+      items: [
+        "React",
+        "Angular",
+        "Vue.js",
+        "JavaScript",
+        "TypeScript",
+      ],
+    },
+
+    {
+      category: "Back-End",
+      items: [
+        "Java",
+        "Spring Boot",
+        "C#",
+        ".NET",
+        "Node.js",
+        "Python",
+        "PHP",
+      ],
+    },
+
+    {
+      category: "Mobile",
+      items: [
+        "Flutter",
+        "React Native",
+        "Swift",
+      ],
+    },
+
+    {
+      category: "Cloud & DevOps",
+      items: [
+        "AWS",
+        "Docker",
+        "Kubernetes",
+      ],
+    },
+
+    {
+      category: "Banco de Dados",
+      items: [
+        "MongoDB",
+        "SQL",
+        "PostgreSQL",
+      ],
+    },
+
+    {
+      category: "UX/UI",
+      items: [
+        "Figma",
+        "Photoshop",
+      ],
+    },
+  ];
+
+  const stackIcons: any = {
+    React: require("../assets/stacks/react.png"),
+    "React Native": require("../assets/stacks/reactnative.png"),
+    Angular: require("../assets/stacks/angular.png"),
+    "Vue.js": require("../assets/stacks/vuejs.png"),
+    JavaScript: require("../assets/stacks/javascript.png"),
+    TypeScript: require("../assets/stacks/typescript.png"),
+    Java: require("../assets/stacks/java.png"),
+    "Spring Boot": require("../assets/stacks/springboot.png"),
+    "C#": require("../assets/stacks/csharp.png"),
+    ".NET": require("../assets/stacks/dot-net.png"),
+    "Node.js": require("../assets/stacks/nodejs.png"),
+    Python: require("../assets/stacks/python.png"),
+    PHP: require("../assets/stacks/php.png"),
+    Flutter: require("../assets/stacks/flutter.png"),
+    Swift: require("../assets/stacks/swift.png"),
+    AWS: require("../assets/stacks/aws.png"),
+    Docker: require("../assets/stacks/docker.png"),
+    Kubernetes: require("../assets/stacks/kubernetes.png"),
+    MongoDB: require("../assets/stacks/mongodb.png"),
+    SQL: require("../assets/stacks/mysql.png"),
+    PostgreSQL: require("../assets/stacks/postgresql.png"),
+    Figma: require("../assets/stacks/figma.png"),
+    Photoshop: require("../assets/stacks/photoshop.png"),
+  };
+
+  const [name, setName] = useState("Joice Barbosa");
+
+  const [position, setPosition] = useState(
+    "Desenvolvedora Mobile"
+  );
+
+  const [objective, setObjective] = useState(
+    "Buscando networking e oportunidades em mobile e IoT."
+  );
+
+  const [bio, setBio] = useState(
+    "Apaixonada por tecnologia, desenvolvimento mobile e soluções IoT."
+  );
+
+  const [selectedStacks, setSelectedStacks] = useState<string[]>([
+    "React Native",
+    "TypeScript",
+    "Java",
+  ]);
+
+  function toggleStack(stack: string) {
+    if (selectedStacks.includes(stack)) {
+      setSelectedStacks(
+        selectedStacks.filter((item) => item !== stack)
+      );
+    } else {
+      setSelectedStacks([...selectedStacks, stack]);
+    }
+  }
+
+  function handleSave() {
+    Alert.alert(
+      "Perfil atualizado 🚀",
+      "Suas informações foram salvas com sucesso."
+    );
+  }
 
   return (
+    <ImageBackground
+      source={require("../assets/map.png")}
+      style={styles.background}
+      imageStyle={styles.backgroundImage}
+    >
+      <View style={styles.overlay}>
+        <SafeAreaView style={styles.container}>
+          <ScrollView showsVerticalScrollIndicator={false}>
 
-    <SafeAreaView style={styles.container}>
+            {/* TOP BAR */}
+            <View style={styles.topBar}>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-      >
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+              >
+                <Text style={styles.backText}>
+                  ← Voltar
+                </Text>
+              </TouchableOpacity>
 
-        {/* BACK BUTTON */}
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
+              {!isEditing && (
+                <TouchableOpacity style={styles.settingsButton}>
+                  <Ionicons
+                    name="settings-outline"
+                    size={26}
+                    color="#FFFFFF"
+                  />
+                </TouchableOpacity>
+              )}
 
-          <Text style={styles.backText}>
-            ← Voltar
-          </Text>
+            </View>
 
-        </TouchableOpacity>
+            {/* AVATAR */}
+            <View style={styles.avatarContainer}>
 
-        {/* HEADER */}
-        <Text style={styles.title}>
-          Meu Perfil
-        </Text>
+              <View>
 
-        <Text style={styles.subtitle}>
-          Configure sua identidade profissional
-        </Text>
+                <Image
+                  source={{
+                    uri: "https://i.pravatar.cc/300?img=32",
+                  }}
+                  style={styles.avatar}
+                />
 
-        {/* AVATAR */}
-        <View style={styles.avatarContainer}>
+                {isEditing && (
+                  <TouchableOpacity style={styles.cameraButton}>
+                    <Ionicons
+                      name="camera-outline"
+                      size={20}
+                      color="#fff"
+                    />
+                  </TouchableOpacity>
+                )}
 
-          <Image
-            source={{
-              uri: 'https://i.pravatar.cc/300?img=32',
-            }}
-            style={styles.avatar}
-          />
+              </View>
 
-          <TouchableOpacity style={styles.editPhotoButton}>
-            <Text style={styles.editPhotoText}>
-              Alterar foto
-            </Text>
-          </TouchableOpacity>
+              {isEditing && (
+                <Text style={styles.changePhotoText}>
+                  Alterar foto
+                </Text>
+              )}
 
-        </View>
+              {!isEditing && (
+                <>
+                  <Text style={styles.profileName}>
+                    {name}
+                  </Text>
 
-        {/* NAME */}
-        <View style={styles.card}>
+                  <Text style={styles.profilePosition}>
+                    {position}
+                  </Text>
+                </>
+              )}
 
-          <Text style={styles.label}>
-            Nome
-          </Text>
+            </View>
 
-          <TextInput
-            placeholder="Seu nome"
-            placeholderTextColor="#777"
-            style={styles.input}
-            value="Joice Barbosa"
-          />
+            {/* STACKS VISUALIZAÇÃO */}
+            {!isEditing && (
+              <View style={styles.stackContainer}>
+                {selectedStacks.map((stack) => (
+                  <View key={stack} style={styles.techCard}>
 
-        </View>
+                    <Image
+                      source={stackIcons[stack]}
+                      style={styles.techIcon}
+                    />
 
-        {/* POSITION */}
-        <View style={styles.card}>
+                    <Text style={styles.techText}>
+                      {stack}
+                    </Text>
 
-          <Text style={styles.label}>
-            Cargo
-          </Text>
+                  </View>
+                ))}
+              </View>
+            )}
 
-          <TextInput
-            placeholder="Seu cargo"
-            placeholderTextColor="#777"
-            style={styles.input}
-            value="Desenvolvedora Mobile"
-          />
+            {/* VISUALIZAÇÃO */}
+            {!isEditing && (
+              <>
 
-        </View>
+                {/* ABOUT */}
+                <View style={styles.infoCard}>
 
-        {/* STACK */}
-        <View style={styles.card}>
+                  <View style={styles.cardContent}>
 
-          <Text style={styles.label}>
-            Stack
-          </Text>
+                    <View style={styles.iconCircle}>
+                      <Ionicons
+                        name="person-outline"
+                        size={22}
+                        color="#4DA6FF"
+                      />
+                    </View>
 
-          <TextInput
-            placeholder="Tecnologias"
-            placeholderTextColor="#777"
-            style={styles.input}
-            value="React Native • TypeScript • Java"
-          />
+                    <View style={styles.textContent}>
 
-        </View>
+                      <Text style={styles.infoTitle}>
+                        Sobre mim
+                      </Text>
 
-        {/* OBJECTIVE */}
-        <View style={styles.card}>
+                      <Text style={styles.infoText}>
+                        {bio}
+                      </Text>
 
-          <Text style={styles.label}>
-            O que você procura?
-          </Text>
+                    </View>
 
-          <TextInput
-            placeholder="Networking, vagas, projetos..."
-            placeholderTextColor="#777"
-            style={styles.textArea}
-            multiline
-            value="Buscando networking e oportunidades em mobile e IoT."
-          />
+                  </View>
 
-        </View>
+                </View>
 
-        {/* BIO */}
-        <View style={styles.card}>
+                {/* OBJETIVO */}
+                <View style={styles.infoCard}>
 
-          <Text style={styles.label}>
-            Bio
-          </Text>
+                  <View style={styles.cardContent}>
 
-          <TextInput
-            placeholder="Fale sobre você"
-            placeholderTextColor="#777"
-            style={styles.textArea}
-            multiline
-            value="Apaixonada por tecnologia, desenvolvimento mobile e soluções IoT."
-          />
+                    <View style={styles.iconCircle}>
+                      <Ionicons
+                        name="compass-outline"
+                        size={22}
+                        color="#4DA6FF"
+                      />
+                    </View>
 
-        </View>
+                    <View style={styles.textContent}>
 
-        {/* BLE STATUS */}
-        <View style={styles.bleCard}>
+                      <Text style={styles.infoTitle}>
+                        Objetivo
+                      </Text>
 
-          <Text style={styles.bleTitle}>
-            Status BLE
-          </Text>
+                      <Text style={styles.infoText}>
+                        {objective}
+                      </Text>
 
-          <View style={styles.bleRow}>
+                    </View>
 
-            <View style={styles.greenDot} />
+                  </View>
 
-            <Text style={styles.bleText}>
-              ESP32 conectado
-            </Text>
+                </View>
 
-          </View>
+                {/* BLE */}
+                <View style={styles.infoCard}>
 
-        </View>
+                  <View style={styles.cardContent}>
 
-        {/* BUTTON */}
-        <TouchableOpacity style={styles.saveButton}>
+                    <View style={styles.iconCircle}>
+                      <Ionicons
+                        name="bluetooth-outline"
+                        size={22}
+                        color="#4DA6FF"
+                      />
+                    </View>
 
-          <Text style={styles.saveButtonText}>
-            Salvar Perfil
-          </Text>
+                    <View style={styles.textContent}>
 
-        </TouchableOpacity>
+                      <Text style={styles.infoTitle}>
+                        Status BLE
+                      </Text>
 
-        <View style={{ height: 40 }} />
+                      <View style={styles.bleRow}>
+                        <View style={styles.greenDot} />
 
-      </ScrollView>
+                        <Text style={styles.bleText}>
+                          ESP32 conectado
+                        </Text>
+                      </View>
 
-    </SafeAreaView>
+                      <Text style={styles.bleSubText}>
+                        Última conexão: agora há pouco
+                      </Text>
 
+                    </View>
+
+                  </View>
+
+                </View>
+
+                {/* BOTÃO */}
+                <TouchableOpacity
+                  style={styles.editProfileButton}
+                  onPress={() => setIsEditing(true)}
+                >
+
+                  <Ionicons
+                    name="create-outline"
+                    size={18}
+                    color="#4DA6FF"
+                    style={{ marginRight: 8 }}
+                  />
+
+                  <Text style={styles.editProfileButtonText}>
+                    Editar Perfil
+                  </Text>
+
+                </TouchableOpacity>
+
+              </>
+            )}
+
+            {/* EDIÇÃO */}
+            {isEditing && (
+              <>
+
+                {/* NOME */}
+                <View style={styles.infoCard}>
+                  <Text style={styles.infoTitle}>
+                    Nome
+                  </Text>
+
+                  <TextInput
+                    style={styles.editInput}
+                    value={name}
+                    onChangeText={setName}
+                  />
+                </View>
+
+                {/* CARGO */}
+                <View style={styles.infoCard}>
+                  <Text style={styles.infoTitle}>
+                    Cargo
+                  </Text>
+
+                  <TextInput
+                    style={styles.editInput}
+                    value={position}
+                    onChangeText={setPosition}
+                  />
+                </View>
+
+                {/* STACKS */}
+                <View style={styles.infoCard}>
+
+                  <Text style={styles.infoTitle}>
+                    Stacks
+                  </Text>
+
+                  <TouchableOpacity
+                    style={styles.stackSelector}
+                    onPress={() => setShowStacks(!showStacks)}
+                  >
+
+                    <Text style={styles.stackSelectorText}>
+                      Selecionar stacks
+                    </Text>
+
+                    <Text style={styles.stackArrow}>
+                      {showStacks ? "▲" : "▼"}
+                    </Text>
+
+                  </TouchableOpacity>
+
+                  {/* STACKS SELECIONADAS */}
+                  <View style={styles.selectedStacksContainer}>
+
+                    {selectedStacks.map((stack) => (
+                      <View
+                        key={stack}
+                        style={styles.selectedStackChip}
+                      >
+
+                        <Text style={styles.selectedStackText}>
+                          {stack}
+                        </Text>
+
+                        <TouchableOpacity
+                          onPress={() => toggleStack(stack)}
+                        >
+                          <Text style={styles.removeStack}>
+                            ✕
+                          </Text>
+                        </TouchableOpacity>
+
+                      </View>
+                    ))}
+
+                  </View>
+
+                  {/* DROPDOWN */}
+                  {showStacks && (
+                    <>
+                      {stackOptions.map((group) => (
+                        <View
+                          key={group.category}
+                          style={styles.categoryBlock}
+                        >
+
+                          <Text style={styles.categoryTitle}>
+                            {group.category}
+                          </Text>
+
+                          <View style={styles.categoryStacks}>
+
+                            {group.items.map((stack) => (
+
+                              <TouchableOpacity
+                                key={stack}
+                                style={[
+                                  styles.stackOption,
+
+                                  selectedStacks.includes(stack) &&
+                                    styles.selectedStackOption,
+                                ]}
+                                onPress={() => toggleStack(stack)}
+                              >
+
+                                <Text style={styles.stackOptionText}>
+                                  {stack}
+                                </Text>
+
+                              </TouchableOpacity>
+
+                            ))}
+
+                          </View>
+
+                        </View>
+                      ))}
+                    </>
+                  )}
+
+                </View>
+
+                {/* BIO */}
+                <View style={styles.infoCard}>
+
+                  <Text style={styles.infoTitle}>
+                    Bio
+                  </Text>
+
+                  <TextInput
+                    placeholder="Fale sobre você"
+                    placeholderTextColor="#777"
+                    style={styles.editTextArea}
+                    multiline
+                    value={bio}
+                    onChangeText={setBio}
+                  />
+
+                </View>
+
+                {/* OBJETIVO */}
+                <View style={styles.infoCard}>
+
+                  <Text style={styles.infoTitle}>
+                    Objetivo
+                  </Text>
+
+                  <TextInput
+                    placeholder="Objetivo profissional"
+                    placeholderTextColor="#777"
+                    style={styles.editTextArea}
+                    multiline
+                    value={objective}
+                    onChangeText={setObjective}
+                  />
+
+                </View>
+
+                {/* BOTÕES */}
+                <View style={styles.buttonRow}>
+
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={() => setIsEditing(false)}
+                  >
+                    <Text style={styles.cancelText}>
+                      Cancelar
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.saveButton}
+                    onPress={() => {
+                      handleSave();
+                      setIsEditing(false);
+                    }}
+                  >
+                    <Text style={styles.saveButtonText}>
+                      Salvar
+                    </Text>
+                  </TouchableOpacity>
+
+                </View>
+
+              </>
+            )}
+
+            <View style={{ height: 50 }} />
+
+          </ScrollView>
+        </SafeAreaView>
+      </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
 
+  background: {
+    flex: 1,
+  },
+
+  backgroundImage: {
+    resizeMode: "cover",
+  },
+
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(2,6,23,0.92)",
+  },
+
   container: {
     flex: 1,
-    backgroundColor: '#071120',
-    paddingTop: 20,
+    paddingTop: 34,
     paddingHorizontal: 20,
   },
 
-  /* BACK */
+  topBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 24,
+  },
 
-  backButton: {
-    marginBottom: 20,
+  settingsButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   backText: {
-    color: '#4DA6FF',
-    fontSize: 16,
+    color: "#4DA6FF",
+    fontSize: 17,
   },
-
-  /* HEADER */
-
-  title: {
-    color: '#fff',
-    fontSize: 32,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-
-  subtitle: {
-    color: '#888',
-    textAlign: 'center',
-    marginTop: 10,
-    marginBottom: 30,
-  },
-
-  /* AVATAR */
 
   avatarContainer: {
-    alignItems: 'center',
-    marginBottom: 30,
+    alignItems: "center",
+    marginBottom: 22,
   },
 
   avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
     borderWidth: 3,
-    borderColor: '#4DA6FF',
+    borderColor: "#4DA6FF",
   },
 
-  editPhotoButton: {
-    marginTop: 15,
+  cameraButton: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    backgroundColor: "#2979FF",
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    justifyContent: "center",
+    alignItems: "center",
   },
 
-  editPhotoText: {
-    color: '#4DA6FF',
-    fontWeight: 'bold',
+  changePhotoText: {
+    color: "#4DA6FF",
+    marginTop: 12,
+    fontSize: 16,
+    fontWeight: "600",
   },
 
-  /* CARD */
+  profileName: {
+    color: "#fff",
+    fontSize: 22,
+    fontWeight: "bold",
+    marginTop: 18,
+  },
 
-  card: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 18,
+  profilePosition: {
+    color: "#4DA6FF",
+    fontSize: 16,
+    marginTop: 6,
+  },
 
+  stackContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    marginBottom: 20,
+  },
+
+  techCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 14,
+    marginRight: 8,
+    marginBottom: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: "rgba(77,166,255,0.15)",
   },
 
-  label: {
-    color: '#4DA6FF',
-    marginBottom: 10,
-    fontWeight: 'bold',
+  techIcon: {
+    width: 16,
+    height: 16,
+    resizeMode: "contain",
+    marginRight: 6,
   },
 
-  input: {
-    color: '#fff',
-    fontSize: 15,
+  techText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 12,
   },
 
-  textArea: {
-    color: '#fff',
-    fontSize: 15,
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-
-  /* BLE */
-
-  bleCard: {
-    backgroundColor: 'rgba(77,166,255,0.08)',
-    borderRadius: 18,
-    padding: 20,
-    marginBottom: 30,
-
+  infoCard: {
+    backgroundColor: "rgba(10,15,30,0.82)",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(77,166,255,0.15)',
+    borderColor: "rgba(255,255,255,0.06)",
   },
 
-  bleTitle: {
-    color: '#4DA6FF',
-    fontWeight: 'bold',
-    marginBottom: 15,
+  cardContent: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+
+  textContent: {
+    flex: 1,
+    marginLeft: 12,
+    paddingRight: 10,
+  },
+
+  iconCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(77,166,255,0.12)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  infoTitle: {
+    color: "#4DA6FF",
+    fontWeight: "700",
+    fontSize: 15,
+    marginBottom: 6,
+  },
+
+  infoText: {
+    color: "#D7E3FF",
+    fontSize: 14,
+    lineHeight: 20,
+    flexShrink: 1,
   },
 
   bleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
 
   greenDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#00FF88',
+    backgroundColor: "#00FF88",
     marginRight: 10,
   },
 
   bleText: {
-    color: '#fff',
+    color: "#fff",
+    fontSize: 15,
   },
 
-  /* BUTTON */
+  bleSubText: {
+    color: "#7C8AA5",
+    marginTop: 10,
+    fontSize: 12,
+  },
+
+  editInput: {
+    color: "#fff",
+    fontSize: 15,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    marginTop: 10,
+  },
+
+  editTextArea: {
+    color: "#fff",
+    fontSize: 15,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    minHeight: 100,
+    textAlignVertical: "top",
+    marginTop: 10,
+  },
+
+  stackSelector: {
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 10,
+  },
+
+  stackSelectorText: {
+    color: "#fff",
+    fontSize: 15,
+  },
+
+  stackArrow: {
+    color: "#4DA6FF",
+  },
+
+  selectedStacksContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 14,
+  },
+
+  selectedStackChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(77,166,255,0.12)",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 10,
+    marginBottom: 10,
+  },
+
+  selectedStackText: {
+    color: "#fff",
+    fontSize: 13,
+    marginRight: 8,
+  },
+
+  removeStack: {
+    color: "#B8C7E0",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+
+  categoryBlock: {
+    marginBottom: 18,
+  },
+
+  categoryTitle: {
+    color: "#4DA6FF",
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 12,
+    marginTop: 10,
+  },
+
+  categoryStacks: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+
+  stackOption: {
+    backgroundColor: "rgba(255,255,255,0.05)",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginRight: 10,
+    marginBottom: 10,
+  },
+
+  selectedStackOption: {
+    backgroundColor: "rgba(77,166,255,0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(77,166,255,0.35)",
+  },
+
+  stackOptionText: {
+    color: "#fff",
+    fontSize: 13,
+  },
+
+  editProfileButton: {
+    height: 52,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: "#2979FF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 8,
+    flexDirection: "row",
+  },
+
+  editProfileButtonText: {
+    color: "#4DA6FF",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 10,
+  },
+
+  cancelButton: {
+    flex: 1,
+    height: 52,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: "#2979FF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+},
 
   saveButton: {
-    backgroundColor: '#2979FF',
-    paddingVertical: 16,
+    flex: 1,
+    height: 52,
     borderRadius: 16,
-    alignItems: 'center',
+    backgroundColor: "#2979FF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 8,
+},
 
-    shadowColor: '#2979FF',
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    elevation: 8,
+  cancelText: {
+    color: "#4DA6FF",
+    fontSize: 18,
+    fontWeight: "bold",
   },
 
   saveButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
   },
-
 });

@@ -10,6 +10,7 @@ import {
   Keyboard,
   Animated,
   Alert,
+  ScrollView,
 } from 'react-native';
 
 import { useEffect, useRef, useState } from 'react';
@@ -20,11 +21,105 @@ import { register } from '../services/auth';
 
 import { createUser } from '../services/userService';
 
-
-
 export default function CreateProfileScreen({ navigation }: any) {
 
   const translateY = useRef(new Animated.Value(300)).current;
+
+  const [showStacks, setShowStacks] = useState(false);
+
+  const [selectedStacks, setSelectedStacks] = useState<string[]>([]);
+
+  const stackOptions = [
+    {
+      category: 'Front-End',
+      items: [
+        'React',
+        'Angular',
+        'Vue.js',
+        'JavaScript',
+        'TypeScript',
+      ],
+    },
+
+    {
+      category: 'Back-End',
+      items: [
+        'Java',
+        'Spring Boot',
+        'C#',
+        '.NET',
+        'Node.js',
+        'Python',
+        'Django',
+        'FastAPI',
+        'PHP',
+      ],
+    },
+
+    {
+      category: 'Mobile',
+      items: [
+        'Flutter',
+        'React Native',
+        'Kotlin',
+        'Swift',
+      ],
+    },
+
+    {
+      category: 'Cloud & DevOps',
+      items: [
+        'AWS',
+        'Azure',
+        'Google Cloud',
+        'Docker',
+        'Kubernetes',
+      ],
+    },
+
+    {
+      category: 'Banco de Dados',
+      items: [
+        'SQL',
+        'MongoDB',
+        'PostgreSQL',
+        'MySQL',
+      ],
+    },
+
+    {
+      category: 'Dados & Inteligência Artificial',
+      items: [
+        'Python',
+        'Power BI',
+        'AI/ML',
+        'Data Science',
+      ],
+    },
+
+    {
+      category: 'UX/UI Design',
+      items: [
+        'Figma',
+        'Photoshop',
+        'UX/UI',
+      ],
+    },
+
+    {
+      category: 'Cyber Security',
+      items: [
+        'Cyber Security',
+      ],
+    },
+
+    {
+      category: 'Full Stack',
+      items: [
+        'Full Stack',
+      ],
+    },
+  ];
 
   const [form, setForm] = useState({
     name: '',
@@ -45,7 +140,6 @@ export default function CreateProfileScreen({ navigation }: any) {
     }).start();
   }, []);
 
-  // VALIDAÇÃO
   function validate() {
 
     let newErrors: any = {};
@@ -71,7 +165,6 @@ export default function CreateProfileScreen({ navigation }: any) {
     return Object.keys(newErrors).length === 0;
   }
 
-  // CADASTRO FIREBASE
   async function handleSubmit() {
 
     if (!validate()) return;
@@ -89,8 +182,6 @@ export default function CreateProfileScreen({ navigation }: any) {
         stack: form.stack,
         position: form.role,
       });
-
-      console.log('Usuário criado:', user.email);
 
       Alert.alert(
         'Sucesso',
@@ -111,7 +202,14 @@ export default function CreateProfileScreen({ navigation }: any) {
   }
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+
+    <TouchableWithoutFeedback
+      onPress={() => {
+        Keyboard.dismiss();
+        setShowStacks(false);
+      }}
+    >
+
       <View style={styles.overlay}>
 
         <KeyboardAvoidingView
@@ -127,7 +225,9 @@ export default function CreateProfileScreen({ navigation }: any) {
 
             <View style={styles.handle} />
 
-            <Text style={styles.title}>Crie seu perfil</Text>
+            <Text style={styles.title}>
+              Crie seu perfil
+            </Text>
 
             <Text style={styles.subtitle}>
               Complete seu perfil para começar
@@ -135,6 +235,7 @@ export default function CreateProfileScreen({ navigation }: any) {
 
             {/* NOME */}
             <View style={styles.inputBox}>
+
               <Ionicons
                 name="person-outline"
                 size={18}
@@ -149,16 +250,20 @@ export default function CreateProfileScreen({ navigation }: any) {
                   setForm({ ...form, name: text })
                 }
               />
+
             </View>
 
-            {errors.name && (
-              <Text style={styles.error}>
-                {errors.name}
-              </Text>
-            )}
+            {
+              errors.name && (
+                <Text style={styles.error}>
+                  {errors.name}
+                </Text>
+              )
+            }
 
             {/* EMAIL */}
             <View style={styles.inputBox}>
+
               <Ionicons
                 name="mail-outline"
                 size={18}
@@ -175,16 +280,20 @@ export default function CreateProfileScreen({ navigation }: any) {
                   setForm({ ...form, email: text })
                 }
               />
+
             </View>
 
-            {errors.email && (
-              <Text style={styles.error}>
-                {errors.email}
-              </Text>
-            )}
+            {
+              errors.email && (
+                <Text style={styles.error}>
+                  {errors.email}
+                </Text>
+              )
+            }
 
             {/* SENHA */}
             <View style={styles.inputBox}>
+
               <Ionicons
                 name="lock-closed-outline"
                 size={18}
@@ -200,16 +309,20 @@ export default function CreateProfileScreen({ navigation }: any) {
                   setForm({ ...form, password: text })
                 }
               />
+
             </View>
 
-            {errors.password && (
-              <Text style={styles.error}>
-                {errors.password}
-              </Text>
-            )}
+            {
+              errors.password && (
+                <Text style={styles.error}>
+                  {errors.password}
+                </Text>
+              )
+            }
 
             {/* BIO */}
             <View style={styles.inputBox}>
+
               <Ionicons
                 name="document-text-outline"
                 size={18}
@@ -224,28 +337,154 @@ export default function CreateProfileScreen({ navigation }: any) {
                   setForm({ ...form, bio: text })
                 }
               />
+
             </View>
 
-            {/* STACK */}
-            <View style={styles.inputBox}>
-              <Ionicons
-                name="code-slash-outline"
-                size={18}
-                color="#888"
-              />
+            {/* STACK SELECT */}
+            <View>
 
-              <TextInput
-                placeholder="Stack (React, Node...)"
-                style={styles.input}
-                value={form.stack}
-                onChangeText={(text) =>
-                  setForm({ ...form, stack: text })
-                }
-              />
+              <TouchableOpacity
+                style={styles.inputBox}
+                onPress={() => setShowStacks(!showStacks)}
+                activeOpacity={0.8}
+              >
+
+                <Ionicons
+                  name="code-slash-outline"
+                  size={18}
+                  color="#888"
+                />
+
+                <Text
+                  style={{
+                    flex: 1,
+                    padding: 10,
+                    color:
+                      selectedStacks.length > 0
+                        ? '#111'
+                        : '#999',
+                  }}
+                  numberOfLines={1}
+                >
+
+                  {
+                    selectedStacks.length > 0
+                      ? selectedStacks.join(', ')
+                      : 'Selecionar stacks'
+                  }
+
+                </Text>
+
+                <Ionicons
+                  name={
+                    showStacks
+                      ? 'chevron-up-outline'
+                      : 'chevron-down-outline'
+                  }
+                  size={18}
+                  color="#666"
+                />
+
+              </TouchableOpacity>
+
+              {
+                showStacks && (
+
+                  <View style={styles.dropdown}>
+
+                    <ScrollView
+                      nestedScrollEnabled
+                      showsVerticalScrollIndicator={false}
+                    >
+
+                      {
+                        stackOptions.map((group) => (
+
+                          <View key={group.category}>
+
+                            <Text style={styles.categoryTitle}>
+                              {group.category}
+                            </Text>
+
+                            {
+                              group.items.map((item) => {
+
+                                const isSelected =
+                                  selectedStacks.includes(item);
+
+                                return (
+
+                                  <TouchableOpacity
+                                    key={item}
+                                    style={styles.option}
+                                    onPress={() => {
+
+                                      let updatedStacks = [];
+
+                                      if (isSelected) {
+
+                                        updatedStacks =
+                                          selectedStacks.filter(
+                                            stack => stack !== item
+                                          );
+
+                                      } else {
+
+                                        updatedStacks = [
+                                          ...selectedStacks,
+                                          item,
+                                        ];
+                                      }
+
+                                      setSelectedStacks(updatedStacks);
+
+                                      setForm({
+                                        ...form,
+                                        stack: updatedStacks.join(', '),
+                                      });
+
+                                    }}
+                                  >
+
+                                    <Text
+                                      style={{
+                                        color:
+                                          isSelected
+                                            ? '#3B5BDB'
+                                            : '#111',
+
+                                        fontWeight:
+                                          isSelected
+                                            ? 'bold'
+                                            : 'normal',
+                                      }}
+                                    >
+                                      {item}
+                                    </Text>
+
+                                  </TouchableOpacity>
+
+                                );
+                              })
+                            }
+
+                          </View>
+
+                        ))
+                      }
+
+                    </ScrollView>
+
+                  </View>
+
+                )
+              }
+
             </View>
 
             {/* CARGO */}
             <View style={styles.inputBox}>
+
               <Ionicons
                 name="briefcase-outline"
                 size={18}
@@ -260,10 +499,12 @@ export default function CreateProfileScreen({ navigation }: any) {
                   setForm({ ...form, role: text })
                 }
               />
+
             </View>
 
             {/* INFO */}
             <View style={styles.infoBox}>
+
               <Ionicons
                 name="sparkles-outline"
                 size={16}
@@ -273,6 +514,7 @@ export default function CreateProfileScreen({ navigation }: any) {
               <Text style={styles.infoText}>
                 Usamos sua stack para sugerir devs próximos a você
               </Text>
+
             </View>
 
             {/* BOTÃO */}
@@ -280,13 +522,16 @@ export default function CreateProfileScreen({ navigation }: any) {
               style={styles.button}
               onPress={handleSubmit}
             >
+
               <Text style={styles.buttonText}>
                 Entrar na rede
               </Text>
+
             </TouchableOpacity>
 
             {/* BLUETOOTH */}
             <View style={styles.bluetooth}>
+
               <Ionicons
                 name="bluetooth-outline"
                 size={16}
@@ -296,15 +541,18 @@ export default function CreateProfileScreen({ navigation }: any) {
               <Text style={styles.footer}>
                 Ative o Bluetooth para encontrar devs ao seu redor
               </Text>
+
             </View>
 
             {/* CANCELAR */}
             <TouchableOpacity
               onPress={() => navigation.goBack()}
             >
+
               <Text style={styles.close}>
                 Cancelar
               </Text>
+
             </TouchableOpacity>
 
           </Animated.View>
@@ -312,25 +560,29 @@ export default function CreateProfileScreen({ navigation }: any) {
         </KeyboardAvoidingView>
 
       </View>
+
     </TouchableWithoutFeedback>
   );
 }
 
 const styles = StyleSheet.create({
+
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    paddingBottom: 68,
     backgroundColor: 'rgba(0,0,0,0.15)',
   },
 
   card: {
     backgroundColor: '#fff',
+
     borderTopLeftRadius: 25,
     borderTopRightRadius: 25,
+
     paddingHorizontal: 20,
     paddingTop: 5,
     paddingBottom: 15,
+
     maxHeight: '100%',
   },
 
@@ -356,15 +608,55 @@ const styles = StyleSheet.create({
   inputBox: {
     flexDirection: 'row',
     alignItems: 'center',
+
     backgroundColor: '#F3F4F6',
+
     paddingHorizontal: 10,
+
     borderRadius: 12,
+
     marginBottom: 3,
   },
 
   input: {
     flex: 1,
     padding: 10,
+  },
+
+  dropdown: {
+    backgroundColor: '#fff',
+
+    borderRadius: 12,
+
+    marginTop: 5,
+    marginBottom: 5,
+
+    maxHeight: 220,
+
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+
+    overflow: 'hidden',
+  },
+
+  categoryTitle: {
+    fontSize: 13,
+    fontWeight: 'bold',
+
+    color: '#3B5BDB',
+
+    paddingHorizontal: 12,
+    paddingTop: 14,
+    paddingBottom: 8,
+
+    backgroundColor: '#F8FAFF',
+  },
+
+  option: {
+    padding: 12,
+
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
 
   error: {
@@ -377,9 +669,13 @@ const styles = StyleSheet.create({
   infoBox: {
     flexDirection: 'row',
     alignItems: 'center',
+
     backgroundColor: '#EEF3FF',
+
     padding: 10,
+
     borderRadius: 12,
+
     marginTop: 10,
   },
 
@@ -392,9 +688,13 @@ const styles = StyleSheet.create({
 
   button: {
     backgroundColor: '#3B5BDB',
+
     padding: 13,
+
     borderRadius: 14,
+
     alignItems: 'center',
+
     marginTop: 12,
   },
 
@@ -407,6 +707,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+
     marginTop: 12,
   },
 
@@ -420,6 +721,8 @@ const styles = StyleSheet.create({
   close: {
     textAlign: 'center',
     marginTop: 12,
+    marginBottom: 28,
     color: '#3B5BDB',
   },
+
 });
