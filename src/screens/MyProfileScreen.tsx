@@ -8,13 +8,15 @@ import {
   TextInput,
   ImageBackground,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-
-import { useState } from "react";
-
+import { useState, useEffect } from "react";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import * as ImagePicker from 'expo-image-picker';
+import { api } from "../services/api";
+import { getStoredUserId } from "../services/auth";
 
 export default function MyProfileScreen({ navigation }: any) {
   const [isEditing, setIsEditing] = useState(false);
@@ -108,6 +110,8 @@ export default function MyProfileScreen({ navigation }: any) {
     Photoshop: require("../assets/stacks/photoshop.png"),
   };
 
+  const [loading, setLoading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const [name, setName] = useState("Joice Barbosa");
 
   const [position, setPosition] = useState(
@@ -128,6 +132,27 @@ export default function MyProfileScreen({ navigation }: any) {
     "Java",
   ]);
 
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  async function loadUserData() {
+    try {
+      const id = await getStoredUserId();
+      if (!id) return;
+      setUserId(id);
+      const response = await api.get(`/users/${id}`);
+      setName(response.data.name);
+      setPosition(response.data.position || "");
+      setBio(response.data.bio || "");
+      if (response.data.stack) {
+        setSelectedStacks(response.data.stack.split(", "));
+      }
+    } catch (error) {
+      console.log("Erro ao carregar perfil", error);
+    }
+  }
+
   function toggleStack(stack: string) {
     if (selectedStacks.includes(stack)) {
       setSelectedStacks(
@@ -138,11 +163,60 @@ export default function MyProfileScreen({ navigation }: any) {
     }
   }
 
-  function handleSave() {
-    Alert.alert(
-      "Perfil atualizado 🚀",
-      "Suas informações foram salvas com sucesso."
-    );
+  async function handleSave() {
+    setLoading(true);
+    try {
+      const id = await getStoredUserId();
+      await api.put(`/users/${id}`, {
+        bio,
+        stack: selectedStacks.join(", "),
+        position,
+        uuidBluetooth: `PROXNET_${name.replace(/\s/g, '_')}_${id}`
+      });
+
+      Alert.alert("Sucesso", "Perfil atualizado 🚀");
+      setIsEditing(false);
+    } catch (error) {
+      Alert.alert("Erro", "Não foi possível salvar as alterações.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handlePickImage() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      uploadAvatar(result.assets[0].uri);
+    }
+  }
+
+  async function uploadAvatar(uri: string) {
+    setLoading(true);
+    try {
+      const id = await getStoredUserId();
+      const formData = new FormData();
+      formData.append('file', {
+        uri,
+        type: 'image/jpeg',
+        name: 'avatar.jpg',
+      } as any);
+
+      await api.post(`/users/${id}/upload-profile-image`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      Alert.alert("Sucesso", "Foto de perfil atualizada!");
+      loadUserData();
+    } catch (error) {
+      Alert.alert("Erro", "Falha no upload da imagem.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -191,7 +265,7 @@ export default function MyProfileScreen({ navigation }: any) {
                 />
 
                 {isEditing && (
-                  <TouchableOpacity style={styles.cameraButton}>
+                  <TouchableOpacity style={styles.cameraButton} onPress={handlePickImage}>
                     <Ionicons
                       name="camera-outline"
                       size={20}
@@ -536,14 +610,14 @@ export default function MyProfileScreen({ navigation }: any) {
 
                   <TouchableOpacity
                     style={styles.saveButton}
-                    onPress={() => {
-                      handleSave();
-                      setIsEditing(false);
-                    }}
+                    onPress={handleSave}
+                    disabled={loading}
                   >
-                    <Text style={styles.saveButtonText}>
-                      Salvar
-                    </Text>
+                    {loading ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={styles.saveButtonText}>Salvar</Text>
+                    )}
                   </TouchableOpacity>
 
                 </View>

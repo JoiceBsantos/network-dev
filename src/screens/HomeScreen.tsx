@@ -13,7 +13,7 @@ import {
 
 import { useEffect, useRef, useState } from 'react';
 
-import { logout } from '../services/auth';
+import { logout, getStoredUserId } from '../services/auth';
 
 import { Ionicons } from '@expo/vector-icons';
 
@@ -101,9 +101,24 @@ export default function HomeScreen({ navigation }: any) {
 
   const [foundCount, setFoundCount] = useState(0);
 
+  const [userName, setUserName] = useState("Desenvolvedor");
+
   async function handleLogout() {
     await logout();
     navigation.replace('Login');
+  }
+
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  async function loadInitialData() {
+    const id = await getStoredUserId();
+    if (id) {
+      // Opcional: buscar dados do usuário para o greeting
+      // Para performance, poderíamos salvar o nome no login, 
+      // mas aqui garantimos que está atualizado.
+    }
   }
 
   function handleSearchDevs() {
@@ -231,7 +246,7 @@ export default function HomeScreen({ navigation }: any) {
               <View>
 
                 <Text style={styles.greeting}>
-                  Olá, Joice 👋
+                  Olá, {userName} 👋
                 </Text>
 
                 <Text style={styles.welcome}>
@@ -239,6 +254,14 @@ export default function HomeScreen({ navigation }: any) {
                 </Text>
 
               </View>
+
+              <TouchableOpacity
+                style={[styles.logoutButton, { marginRight: 10, borderColor: '#3B82F6' }]}
+                onPress={() => navigation.navigate('Feed')}
+              >
+                <Ionicons name="images-outline" size={18} color="#3B82F6" />
+                <Text style={[styles.logoutText, { color: '#3B82F6', marginLeft: 5 }]}>Feed</Text>
+              </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.logoutButton}

@@ -10,6 +10,7 @@ import {
   Alert,
   Animated,
   Easing,
+  useWindowDimensions,
 } from "react-native";
 
 import { login } from "../services/auth";
@@ -18,6 +19,7 @@ export default function LoginScreen({ navigation }: any) {
   const [password, setPassword] = useState("");
   const fadeAnim = useState(new Animated.Value(0))[0];
   const translateY = useState(new Animated.Value(40))[0];
+  const { width } = useWindowDimensions();
 
   useEffect(() => {
     Animated.parallel([
@@ -37,11 +39,11 @@ export default function LoginScreen({ navigation }: any) {
   }, []);
 
   async function handleLogin() {
+    if (!email || !password) {
+      return Alert.alert("Erro", "Preencha todos os campos");
+    }
     try {
-      const user = await login(email, password);
-
-      console.log("Usuário logado:", user.email);
-
+      await login(email, password);
       navigation.navigate("Home");
     } catch (error) {
       console.log(error);
@@ -73,16 +75,12 @@ export default function LoginScreen({ navigation }: any) {
                 source={require("../assets/logo.png")}
                 style={styles.logo}
               />
-
-              <View style={styles.textContainer}>
-                <Text style={styles.title}>
-                  Network <Text style={styles.devText}>Dev</Text>
-                </Text>
-
-                <Text style={styles.subtitle}>
-                  Conecte-se com devs próximos a você
-                </Text>
-              </View>
+              <Text style={styles.title}>
+                Network <Text style={styles.devText}>Dev</Text>
+              </Text>
+              <Text style={styles.subtitle}>
+                Conecte-se com devs próximos a você
+              </Text>
             </View>
           </View>
 
@@ -107,12 +105,6 @@ export default function LoginScreen({ navigation }: any) {
 
             <TouchableOpacity style={styles.button} onPress={handleLogin}>
               <Text style={styles.buttonText}>Entrar</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.or}>ou</Text>
-
-            <TouchableOpacity style={styles.googleButton}>
-              <Text style={styles.googleText}>Entrar com Google</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -154,12 +146,11 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 35,
     width: "100%",
-    alignItems: "center",
   },
 
   titleRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
+    flexDirection: "column",
+    alignItems: "center",
     justifyContent: "center",
   },
 
@@ -167,20 +158,14 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     resizeMode: "contain",
-    marginRight: -60,
-    marginTop: -50,
-  },
-
-  textContainer: {
-    justifyContent: "center",
-    alignItems: "center",
+    marginBottom: 10,
   },
 
   title: {
     color: "#fff",
     fontSize: 28,
     fontWeight: "bold",
-    marginLeft: -2,
+    textAlign: "center",
   },
 
   devText: {
@@ -203,7 +188,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     width: "100%",
-    maxWidth: 400,
+    maxWidth: 400, // Mantém o card centralizado e legível no PC
+    alignSelf: 'center',
 
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",

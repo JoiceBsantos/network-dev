@@ -1,20 +1,8 @@
 import { api } from './api';
 
-export async function createUser(data: {
-  name: string;
-  bio: string;
-  stack: string;
-  position: string;
-}) {
-
-  const response = await api.post('/users', data);
-
-  return response.data;
-}
-
-export async function getMe() {
-
-  const response = await api.get('/users/me');
+// Substituído por getUser com ID específico conforme README2.MD
+export async function getUser(id: number) {
+  const response = await api.get(`/users/${id}`);
 
   return response.data;
 }

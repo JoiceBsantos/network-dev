@@ -5,6 +5,7 @@ import CreateProfileScreen from '../screens/CreateProfileScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ConnectionScreen from '../screens/ConnectionScreen';
 import MyProfileScreen from '../screens/MyProfileScreen';
+import FeedScreen from '../screens/FeedScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -31,6 +32,11 @@ export default function AppNavigator() {
       <Stack.Screen
         name="Connection"
         component={ConnectionScreen}
+      />
+
+      <Stack.Screen
+        name="Feed"
+        component={FeedScreen}
       />
 
       <Stack.Screen

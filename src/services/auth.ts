@@ -1,44 +1,46 @@
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  getAuth,
-  signOut,
-} from 'firebase/auth';
+import { api } from './api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { app } from '../config/firebase';
+const USER_ID_KEY = '@network_dev_UserId';
 
-const auth = getAuth(app);
-
-export async function register(email: string, password: string) {
-  const userCredential = await createUserWithEmailAndPassword(
-    auth,
-    email,
-    password
-  );
-
-  return userCredential.user;
+export async function register(userData: any) {
+  // O endpoint correto é /users/register
+  const response = await api.post('/users/register', userData);
+  if (response.data.userId) {
+    await saveUserId(response.data.userId.toString());
+  }
+  return response.data;
 }
 
 export async function login(email: string, password: string) {
-  const userCredential = await signInWithEmailAndPassword(
-    auth,
-    email,
-    password
-  );
+  // LÓGICA DE TESTE LOCAL (SEM API)
+  if (email === 'teste@email.com' && password === '123456') {
+    const mockUser = {
+      userId: 999,
+      name: "Usuário Teste",
+      email: "teste@email.com",
+      message: "Login de teste realizado"
+    };
+    await saveUserId(mockUser.userId.toString());
+    return mockUser;
+  }
 
-  return userCredential.user;
+  // O endpoint correto é /users/login
+  const response = await api.post('/users/login', { email, password });
+  if (response.data.userId) {
+    await saveUserId(response.data.userId.toString());
+  }
+  return response.data;
+}
+
+async function saveUserId(id: string) {
+  await AsyncStorage.setItem(USER_ID_KEY, id);
 }
 
 export async function logout() {
-  await signOut(auth);
+  await AsyncStorage.removeItem(USER_ID_KEY);
 }
 
-export async function getToken() {
-  const user = auth.currentUser;
-
-  if (!user) {
-    return null;
-  }
-
-  return await user.getIdToken();
+export async function getStoredUserId() {
+  return await AsyncStorage.getItem(USER_ID_KEY);
 }

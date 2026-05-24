@@ -12,6 +12,8 @@ import {
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LottieView from 'lottie-react-native';
+import { api } from '../services/api';
+import { getStoredUserId } from '../services/auth';
 
 export default function ConnectionScreen({ navigation }: any) {
   const [showHandshake, setShowHandshake] = useState(false);
@@ -35,8 +37,21 @@ export default function ConnectionScreen({ navigation }: any) {
     pulse.start();
   }, []);
 
-  function handleConnection() {
+  async function handleConnection() {
     setShowHandshake(true);
+    
+    try {
+      const myId = await getStoredUserId();
+      // Registra a proximidade no backend (MongoDB) conforme API 4.1
+      await api.post('/proximity/detect', {
+        originUserId: Number(myId),
+        detectedUserId: 3, // ID do Carlos Lima (MOCK)
+        rssi: -45,
+        timestamp: new Date().toISOString()
+      });
+    } catch (e) {
+      console.log("Erro ao registrar log de proximidade", e);
+    }
 
     setTimeout(() => {
       setShowHandshake(false);
