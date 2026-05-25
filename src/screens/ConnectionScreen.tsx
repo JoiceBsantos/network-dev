@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
+
 import {
   View,
   Text,
@@ -8,394 +9,888 @@ import {
   Alert,
   Modal,
   Animated,
-} from 'react-native';
+  ScrollView,
+} from "react-native";
 
-import { SafeAreaView } from 'react-native-safe-area-context';
-import LottieView from 'lottie-react-native';
-import { api } from '../services/api';
-import { getStoredUserId } from '../services/auth';
+import { SafeAreaView } from "react-native-safe-area-context";
 
+import LottieView from "lottie-react-native";
 
-export default function ConnectionScreen({ navigation }: any) {
-  const [showHandshake, setShowHandshake] = useState(false);
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+import { Ionicons } from "@expo/vector-icons";
+
+import { LinearGradient } from "expo-linear-gradient";
+
+import { api } from "../services/api";
+
+import { getStoredUserId } from "../services/auth";
+
+import { useResponsive } from "../utils/responsive";
+
+export default function ConnectionScreen({
+  navigation,
+}: any) {
+  const [showHandshake, setShowHandshake] =
+    useState(false);
+
+  const [showSuccess, setShowSuccess] =
+  useState(false);
+
+  const pulseAnim = useRef(
+    new Animated.Value(1)
+  ).current;
+
+  const {
+    isMobile,
+    isTablet,
+    isDesktop,
+  } = useResponsive();
 
   useEffect(() => {
     const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
           toValue: 1.2,
+
           duration: 1000,
+
           useNativeDriver: true,
         }),
+
         Animated.timing(pulseAnim, {
           toValue: 1,
+
           duration: 1000,
+
           useNativeDriver: true,
         }),
       ])
     );
+
     pulse.start();
   }, []);
 
   async function handleConnection() {
     setShowHandshake(true);
-    
+
     try {
       const myId = await getStoredUserId();
+
       // Registra a proximidade no backend (MongoDB) conforme API 4.1
-      await api.post('/proximity/detect', {
+
+      await api.post("/proximity/detect", {
         originUserId: Number(myId),
-        detectedUserId: 3, // ID do Carlos Lima (MOCK)
+
+        detectedUserId: 3,
+
         rssi: -45,
-        timestamp: new Date().toISOString()
+
+        timestamp: new Date().toISOString(),
       });
     } catch (e) {
-      console.log("Erro ao registrar log de proximidade", e);
+      console.log(
+        "Erro ao registrar log de proximidade",
+        e
+      );
     }
 
     setTimeout(() => {
       setShowHandshake(false);
-
-      Alert.alert(
-        'Conexão enviada 🚀',
-        'Sua conexão foi enviada com sucesso!',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('Home'),
-          },
-        ]
-      );
+      setShowSuccess(true);
     }, 2200);
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.backgroundGlowTop} />
+    <LinearGradient
+      colors={["#020617", "#07152B"]}
+      style={styles.container}
+    >
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingBottom: 60,
+          }}
+        >
+          <View style={styles.backgroundGlowTop} />
 
-      <View style={{ flex : 1 }} />
-      {/* BACK BUTTON */}
-      <TouchableOpacity
-        onPress={() => navigation.goBack()}
-        style={styles.backButton}
-      >
-        <Text style={styles.backText}>← Voltar</Text>
-      </TouchableOpacity>
+          {/* CONTENT */}
 
-        {/* HEADER */}
-        <Text style={styles.title}>Conexão Detectada</Text>
-        <Text style={styles.subtitle}>Desenvolvedor próximo encontrado via BLE</Text>
+          <View
+            style={[
+              styles.content,
+              {
+                paddingHorizontal: isMobile
+                  ? 20
+                  : 40,
 
-        {/* CONNECTION AREA */}
-        <View style={styles.connectionContainer}>
-          {/* USER */}
-          <View style={styles.userContainer}>
-            <Image
-              source={{ uri: 'https://i.pravatar.cc/150?img=32' }}
-              style={styles.avatar}
-            />
-            <Text style={styles.userName}>Você</Text>
-            <Text style={styles.stack}>React Native</Text>
-          </View>
+                maxWidth: isDesktop
+                  ? 1100
+                  : 900,
 
-          {/* LINE */}
-          <View style={styles.lineContainer}>
-            <View style={styles.line} />
-            <Animated.View
+                alignSelf: "center",
+
+                width: "100%",
+              },
+            ]}
+          >
+            {/* BACK BUTTON */}
+
+            <TouchableOpacity
+              onPress={() =>
+                navigation.goBack()
+              }
+              style={styles.backButton}
+            >
+              <Ionicons
+                name="arrow-back"
+                size={24}
+                color="#4DA6FF"
+              />
+
+              <Text style={styles.backText}>
+                Voltar
+              </Text>
+            </TouchableOpacity>
+
+            {/* HEADER */}
+
+            <Text
               style={[
-                styles.connectionGlow,
+                styles.title,
                 {
-                  transform: [{ scale: pulseAnim }],
+                  fontSize: isMobile
+                    ? 28
+                    : 42,
+                },
+              ]}
+            >
+              Conexão Detectada
+            </Text>
+
+            <Text
+              style={[
+                styles.subtitle,
+                {
+                  fontSize: isMobile
+                    ? 15
+                    : 18,
+
+                  maxWidth: 700,
+                },
+              ]}
+            >
+              Desenvolvedor próximo encontrado
+              via BLE
+            </Text>
+
+            {/* CONNECTION AREA */}
+
+            <View
+              style={[
+                styles.connectionWrapper,
+                {
+                  paddingVertical: isMobile
+                    ? 28
+                    : 50,
+
+                  paddingHorizontal:
+                    isMobile ? 18 : 40,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.connectionContainer,
+                  {
+                    flexDirection:
+                      isMobile
+                        ? "column"
+                        : "row",
+
+                    gap: isMobile ? 30 : 20,
+                  },
+                ]}
+              >
+                {/* USER */}
+
+                <View
+                  style={styles.userContainer}
+                >
+                  <Image
+                    source={{
+                      uri: "https://i.pravatar.cc/150?img=32",
+                    }}
+                    style={[
+                      styles.avatar,
+                      {
+                        width: isMobile
+                          ? 92
+                          : 130,
+
+                        height: isMobile
+                          ? 92
+                          : 130,
+
+                        borderRadius:
+                          isMobile
+                            ? 46
+                            : 65,
+                      },
+                    ]}
+                  />
+
+                  <Text
+                    style={[
+                      styles.userName,
+                      {
+                        fontSize: isMobile
+                          ? 18
+                          : 24,
+                      },
+                    ]}
+                  >
+                    Você
+                  </Text>
+
+                  <Text
+                    style={[
+                      styles.stack,
+                      {
+                        fontSize: isMobile
+                          ? 13
+                          : 15,
+                      },
+                    ]}
+                  >
+                    React Native
+                  </Text>
+                </View>
+
+                {/* CONNECTION */}
+
+                <View
+                  style={[
+                    styles.lineContainer,
+                    {
+                      width: isMobile
+                        ? 3
+                        : "auto",
+
+                      height: isMobile
+                        ? 120
+                        : "auto",
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.line,
+                      {
+                        width: isMobile
+                          ? 3
+                          : "100%",
+
+                        height: isMobile
+                          ? "100%"
+                          : 3,
+                      },
+                    ]}
+                  />
+
+                  <Animated.View
+                    style={[
+                      styles.connectionGlow,
+                      {
+                        transform: [
+                          {
+                            scale: pulseAnim,
+                          },
+                        ],
+                      },
+                    ]}
+                  />
+                </View>
+
+                {/* DETECTED DEV */}
+
+                <View
+                  style={styles.userContainer}
+                >
+                  <Image
+                    source={{
+                      uri: "https://i.pravatar.cc/150?img=12",
+                    }}
+                    style={[
+                      styles.avatar,
+                      {
+                        width: isMobile
+                          ? 92
+                          : 130,
+
+                        height: isMobile
+                          ? 92
+                          : 130,
+
+                        borderRadius:
+                          isMobile
+                            ? 46
+                            : 65,
+                      },
+                    ]}
+                  />
+
+                  <Text
+                    style={[
+                      styles.userName,
+                      {
+                        fontSize: isMobile
+                          ? 18
+                          : 24,
+                      },
+                    ]}
+                  >
+                    Carlos Lima
+                  </Text>
+
+                  <Text
+                    style={[
+                      styles.stack,
+                      {
+                        fontSize: isMobile
+                          ? 13
+                          : 15,
+                      },
+                    ]}
+                  >
+                    Java + Spring
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* MATCH */}
+
+            <View
+              style={[
+                styles.matchCard,
+                {
+                  paddingVertical: isMobile
+                    ? 22
+                    : 30,
+                },
+              ]}
+            >
+              <Text style={styles.matchTitle}>
+                Compatibilidade
+              </Text>
+
+              <Text
+                style={[
+                  styles.matchValue,
+                  {
+                    fontSize: isMobile
+                      ? 56
+                      : 82,
+                  },
+                ]}
+              >
+                92%
+              </Text>
+
+              <Text
+                style={[
+                  styles.matchDescription,
+                  {
+                    fontSize: isMobile
+                      ? 15
+                      : 17,
+                  },
+                ]}
+              >
+                Vocês possuem interesses e
+                stacks compatíveis.
+              </Text>
+            </View>
+
+            {/* BLE INFO */}
+
+            <View
+              style={[
+                styles.infoContainer,
+                {
+                  flexDirection: isMobile
+                    ? "column"
+                    : "row",
+
+                  gap: 14,
+                },
+              ]}
+            >
+              <View style={styles.infoBadge}>
+                <Text style={styles.infoText}>
+                  📍 Distância: 3 metros
+                </Text>
+              </View>
+
+              <View style={styles.infoBadge}>
+                <Text style={styles.infoText}>
+                  📶 Sinal BLE Forte
+                </Text>
+              </View>
+
+              <View style={styles.infoBadge}>
+                <Text style={styles.infoText}>
+                  🔵 Bluetooth ativo
+                </Text>
+              </View>
+            </View>
+
+            {/* OBJECTIVE */}
+
+            <View
+              style={[
+                styles.objectiveCard,
+                {
+                  padding: isMobile
+                    ? 18
+                    : 24,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.objectiveTitle,
+                  {
+                    fontSize: isMobile
+                      ? 16
+                      : 20,
+                  },
+                ]}
+              >
+                Objetivo Profissional
+              </Text>
+
+              <Text
+                style={[
+                  styles.objectiveText,
+                  {
+                    fontSize: isMobile
+                      ? 15
+                      : 17,
+                  },
+                ]}
+              >
+                Buscando networking em
+                mobile e projetos IoT.
+              </Text>
+            </View>
+
+            {/* BUTTON */}
+
+            <TouchableOpacity
+              style={[
+                styles.connectButton,
+                {
+                  width: isMobile
+                    ? "100%"
+                    : 420,
+
+                  alignSelf: "center",
+
+                  marginTop: isMobile
+                    ? 18
+                    : 30,
+                },
+              ]}
+              onPress={handleConnection}
+            >
+              <Text
+                style={[
+                  styles.connectButtonText,
+                  {
+                    fontSize: isMobile
+                      ? 16
+                      : 18,
+                  },
+                ]}
+              >
+                Enviar Conexão
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+
+        {/* MODAL */}
+
+        <Modal
+          visible={showHandshake}
+          transparent
+          animationType="fade"
+          statusBarTranslucent
+        >
+          <View style={styles.handshakeOverlay}>
+            <View
+              style={styles.handshakeGlow}
+            />
+
+            <LottieView
+              source={require("../assets/handshake.json")}
+              autoPlay
+              loop
+              style={[
+                styles.handshakeAnimation,
+                {
+                  width: isMobile
+                    ? 180
+                    : 170,
+
+                  height: isMobile
+                    ? 180
+                    : 170,
                 },
               ]}
             />
+
+            <Text
+              style={[
+                styles.handshakeText,
+                {
+                  fontSize: isMobile
+                    ? 20
+                    : 28,
+                },
+              ]}
+            >
+              Conectando desenvolvedores...
+            </Text>
           </View>
+        </Modal>
+        <Modal
+  visible={showSuccess}
+  transparent
+  animationType="fade"
+>
+  <View style={styles.successOverlay}>
+    <View style={styles.successCard}>
+      <Ionicons
+        name="checkmark-circle"
+        size={70}
+        color="#22C55E"
+      />
 
-          {/* DETECTED DEV */}
-          <View style={styles.userContainer}>
-            <Image
-              source={{ uri: 'https://i.pravatar.cc/150?img=12' }}
-              style={styles.avatar}
-            />
-            <Text style={styles.userName}>Carlos Lima</Text>
-            <Text style={styles.stack}>Java + Spring</Text>
-          </View>
-        </View>
+      <Text style={styles.successTitle}>
+        Conexão enviada 🚀
+      </Text>
 
-        {/* MATCH */}
-        <View style={styles.matchCard}>
-          <Text style={styles.matchTitle}>Compatibilidade</Text>
-          <Text style={styles.matchValue}>92%</Text>
-          <Text style={styles.matchDescription}>
-            Vocês possuem interesses e stacks compatíveis.
-          </Text>
-        </View>
+      <Text style={styles.successText}>
+        Sua conexão foi enviada com sucesso!
+      </Text>
 
-        {/* BLE INFO */}
-        <View style={styles.infoCard}>
-          <Text style={styles.infoText}>📍 Distância aproximada: 3 metros</Text>
-          <Text style={styles.infoText}>📶 BLE detectado com sinal forte</Text>
-        </View>
+      <TouchableOpacity
+        style={styles.successButton}
+        onPress={() => {
+          setShowSuccess(false);
 
-        {/* OBJECTIVE */}
-        <View style={styles.objectiveCard}>
-          <Text style={styles.objectiveTitle}>Objetivo Profissional</Text>
-          <Text style={styles.objectiveText}>Buscando networking em mobile e projetos IoT.</Text>
-        </View>
-
-        {/* BUTTON */}
-        <TouchableOpacity style={styles.connectButton} onPress={handleConnection}>
-          <Text style={styles.connectButtonText}>Enviar Conexão</Text>
-        </TouchableOpacity>
-
-        {/* SPACE BOTTOM */}
-        <View style={{ height: 40 }} />
-
-      <Modal visible={showHandshake} transparent animationType="fade" statusBarTranslucent>
-        <View style={styles.handshakeOverlay}>
-          <View style={styles.handshakeGlow} />
-
-          <LottieView
-            source={require('../assets/handshake.json')}
-            autoPlay
-            loop
-            style={styles.handshakeAnimation}
-          />
-
-          <Text style={styles.handshakeText}>Conectando desenvolvedores...</Text>
-        </View>
-      </Modal>
-    </SafeAreaView>
+          navigation.navigate("Home");
+        }}
+      >
+        <Text style={styles.successButtonText}>
+          Continuar
+        </Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#020617',
+  },
+
+  content: {
     paddingTop: 20,
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-    overflow: 'hidden',
   },
 
   /* BACK */
+
   backButton: {
-    marginBottom: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 28,
   },
 
   backText: {
-    color: '#4DA6FF',
+    color: "#4DA6FF",
     fontSize: 16,
+    marginLeft: 8,
   },
 
   /* HEADER */
+
   title: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: '800',
-    textAlign: 'center',
+    color: "#fff",
+    fontWeight: "800",
+    textAlign: "center",
   },
 
   subtitle: {
-    color: '#94A3B8',
-    textAlign: 'center',
-    marginTop: 10,
-    marginBottom: 24,
-    fontSize: 15,
-    lineHeight: 22,
+    color: "#94A3B8",
+    textAlign: "center",
+    marginTop: 12,
+    marginBottom: 32,
+    lineHeight: 26,
+    alignSelf: "center",
   },
 
   /* CONNECTION */
+
+  connectionWrapper: {
+    backgroundColor: "rgba(15,23,42,0.65)",
+    borderRadius: 32,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.04)",
+    marginBottom: 24,
+    overflow: "hidden",
+  },
+
   connectionContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 26,
+    alignItems: "center",
+    justifyContent: "space-between",
   },
 
   userContainer: {
-    alignItems: 'center',
-    width: 110,
+    alignItems: "center",
   },
 
   avatar: {
-    width: 82,
-    height: 82,
-    borderRadius: 41,
-    borderWidth: 2,
-    borderColor: '#4DA6FF',
+    borderWidth: 3,
+    borderColor: "#4DA6FF",
   },
 
   userName: {
-    color: '#fff',
-    fontWeight: 'bold',
-    marginTop: 12,
-    textAlign: 'center',
+    color: "#fff",
+    fontWeight: "800",
+    marginTop: 18,
+    textAlign: "center",
   },
 
   stack: {
-    color: '#4DA6FF',
-    marginTop: 5,
-    fontSize: 12,
-    textAlign: 'center',
+    color: "#4DA6FF",
+    marginTop: 6,
+    textAlign: "center",
   },
 
   /* LINE */
+
   lineContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   line: {
-    width: '100%',
-    height: 3,
-    backgroundColor: 'rgba(77,166,255,0.3)',
+    backgroundColor: "rgba(77,166,255,0.3)",
     borderRadius: 99,
   },
 
   connectionGlow: {
-    position: 'absolute',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#4DA6FF',
-    shadowColor: '#4DA6FF',
+    position: "absolute",
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#4DA6FF",
+    shadowColor: "#4DA6FF",
     shadowOpacity: 1,
     shadowRadius: 22,
     elevation: 12,
   },
 
   /* MATCH */
+
   matchCard: {
-    backgroundColor: 'rgba(15,23,42,0.65)',
+    backgroundColor: "rgba(15,23,42,0.65)",
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 26,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    marginBottom: 12,
-    overflow: 'hidden',
+
+    borderColor: "rgba(255,255,255,0.04)",
+    borderRadius: 30,
+    paddingHorizontal: 24,
+    marginBottom: 20,
   },
 
   matchTitle: {
-    color: '#CBD5E1',
-    fontSize: 14,
+    color: "#CBD5E1",
+    fontSize: 15,
+    textAlign: "center",
   },
 
   matchValue: {
-    color: '#4DA6FF',
-    fontSize: 42,
-    fontWeight: 'bold',
+    color: "#4DA6FF",
+    fontWeight: "bold",
     marginVertical: 10,
-    textAlign: 'center',
-    width: '100%',
+    textAlign: "center",
+    width: "100%",
   },
 
   matchDescription: {
-    color: '#ccc',
-    textAlign: 'center',
-    lineHeight: 22,
+    color: "#ccc",
+    textAlign: "center",
+    lineHeight: 26,
   },
 
   /* INFO */
-  infoCard: {
-    backgroundColor: 'rgba(15,23,42,0.65)',
+
+  infoContainer: {
+    marginBottom: 22,
+  },
+
+  infoBadge: {
+    flex: 1,
+    backgroundColor: "rgba(15,23,42,0.65)",
     borderRadius: 18,
-    padding: 15,
-    marginBottom: 20,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.04)',
+    borderColor: "rgba(255,255,255,0.04)",
   },
 
   infoText: {
-    color: '#ddd',
-    marginBottom: 8,
+    color: "#fff",
+    textAlign: "center",
+    fontSize: 15,
+    fontWeight: "600",
   },
 
   /* OBJECTIVE */
+
   objectiveCard: {
-    backgroundColor: 'rgba(77,166,255,0.05)',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 8,
+    backgroundColor: "rgba(77,166,255,0.05)",
+    borderRadius: 24,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(77,166,255,0.04)',
+    borderColor:
+      "rgba(77,166,255,0.04)",
   },
 
   objectiveTitle: {
-    color: '#4DA6FF',
-    fontWeight: 'bold',
-    marginBottom: 10,
+    color: "#4DA6FF",
+    fontWeight: "800",
+    marginBottom: 12,
   },
 
   objectiveText: {
-    color: '#ddd',
-    lineHeight: 22,
+    color: "#ddd",
+    lineHeight: 28,
   },
 
   /* BUTTON */
+
   connectButton: {
-    backgroundColor: '#2563EB',
-    paddingVertical: 16,
-    borderRadius: 16,
-    alignItems: 'center',
-    overflow: 'hidden',
+    backgroundColor: "#2563EB",
+    paddingVertical: 18,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#2563EB",
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    elevation: 10,
   },
 
   connectButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+    color: "#fff",
+    fontWeight: "800",
   },
 
+  /* MODAL */
 
   handshakeOverlay: {
-    position: 'absolute',
-
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(2,6,23,0.92)',
-    justifyContent: 'center',
-    alignItems: 'center',
-
-  },
-
-  handshakeEmoji: {
-    fontSize: 90,
+    backgroundColor: "rgba(2,6,23,0.92)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   handshakeText: {
-    color: '#fff',
-    fontSize: 22,
-    fontWeight: '700',
-    marginTop: 26,
+    color: "#fff",
+    fontWeight: "700",
+    marginTop: 14,
   },
+
   handshakeGlow: {
-    position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 260,
-    backgroundColor: 'rgba(59,130,246,0.12)',
+    position: "absolute",
+    width: 180,
+    height: 189,
+    borderRadius: 180,
+    backgroundColor:
+      "rgba(59,130,246,0.12)",
   },
 
-  handshakeAnimation: {
-    width: 190,
-    height: 190,
-  },
-
+  handshakeAnimation: {},
   backgroundGlowTop: {
-    position: 'absolute',
+    position: "absolute",
     top: -220,
     left: -140,
     width: 340,
     height: 340,
     borderRadius: 340,
-    backgroundColor: 'rgba(37,99,235,0.16)',
+    backgroundColor:
+      "rgba(37,99,235,0.16)",
   },
 
+  successOverlay: {
+  flex: 1,
+  backgroundColor: "rgba(0,0,0,0.65)",
+  justifyContent: "center",
+  alignItems: "center",
+  padding: 20,
+},
+
+successCard: {
+  width: "100%",
+  maxWidth: 420,
+  backgroundColor: "#081228",
+  borderRadius: 28,
+  padding: 30,
+  alignItems: "center",
+  borderWidth: 1,
+  borderColor: "rgba(255,255,255,0.06)",
+},
+
+successTitle: {
+  color: "#fff",
+  fontSize: 28,
+  fontWeight: "800",
+  marginTop: 20,
+},
+
+successText: {
+  color: "#CBD5E1",
+  fontSize: 16,
+  textAlign: "center",
+  marginTop: 10,
+  lineHeight: 24,
+},
+
+successButton: {
+  backgroundColor: "#2563EB",
+  width: "100%",
+  paddingVertical: 16,
+  borderRadius: 18,
+  alignItems: "center",
+  marginTop: 26,
+},
+
+successButtonText: {
+  color: "#fff",
+  fontWeight: "800",
+  fontSize: 16,
+},
 });
