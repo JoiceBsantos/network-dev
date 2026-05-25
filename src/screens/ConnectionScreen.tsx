@@ -15,6 +15,7 @@ import LottieView from 'lottie-react-native';
 import { api } from '../services/api';
 import { getStoredUserId } from '../services/auth';
 
+
 export default function ConnectionScreen({ navigation }: any) {
   const [showHandshake, setShowHandshake] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;

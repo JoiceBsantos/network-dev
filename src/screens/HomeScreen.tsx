@@ -1,3 +1,4 @@
+import { useResponsive } from "../utils/responsive";
 import {
   View,
   Text,
@@ -9,79 +10,58 @@ import {
   StatusBar,
   Animated,
   ImageStyle,
-} from 'react-native';
+} from "react-native";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from "react";
 
-import { logout, getStoredUserId } from '../services/auth';
+import { logout, getStoredUserId } from "../services/auth";
 
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from "@expo/vector-icons";
 
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from "expo-linear-gradient";
 
 const allDevelopers = [
   {
-    id: '1',
-    name: 'Ana Costa',
-    stack: 'React Native',
-    match: '92%',
-    image: 'https://i.pravatar.cc/150?img=32',
+    id: "1",
+    name: "Ana Costa",
+    stack: "React Native",
+    match: "92%",
+    image: "https://i.pravatar.cc/150?img=32",
   },
-
   {
-    id: '2',
-    name: 'Carlos Lima',
-    stack: 'Java + Spring Boot',
-    match: '85%',
-    image: 'https://i.pravatar.cc/150?img=12',
+    id: "2",
+    name: "Carlos Lima",
+    stack: "Java + Spring Boot",
+    match: "85%",
+    image: "https://i.pravatar.cc/150?img=12",
   },
-
   {
-    id: '3',
-    name: 'Marina Souza',
-    stack: 'UI/UX Design',
-    match: '97%',
-    image: 'https://i.pravatar.cc/150?img=45',
+    id: "3",
+    name: "Marina Souza",
+    stack: "UI/UX Design",
+    match: "97%",
+    image: "https://i.pravatar.cc/150?img=45",
   },
-
   {
-    id: '4',
-    name: 'Pedro Henrique',
-    stack: 'Node.js',
-    match: '80%',
-    image: 'https://i.pravatar.cc/150?img=60',
+    id: "4",
+    name: "Pedro Henrique",
+    stack: "Node.js",
+    match: "80%",
+    image: "https://i.pravatar.cc/150?img=60",
   },
-
   {
-    id: '5',
-    name: 'Juliana Alves',
-    stack: 'Flutter',
-    match: '88%',
-    image: 'https://i.pravatar.cc/150?img=21',
+    id: "5",
+    name: "Juliana Alves",
+    stack: "Flutter",
+    match: "88%",
+    image: "https://i.pravatar.cc/150?img=21",
   },
-
   {
-    id: '6',
-    name: 'Lucas Mendes',
-    stack: 'AWS + DevOps',
-    match: '94%',
-    image: 'https://i.pravatar.cc/150?img=53',
-  },
-
-  {
-    id: '7',
-    name: 'Fernanda Lima',
-    stack: 'Cyber Security',
-    match: '90%',
-    image: 'https://i.pravatar.cc/150?img=44',
-  },
-
-  {
-    id: '8',
-    name: 'Ricardo Souza',
-    stack: 'Data Science',
-    match: '83%',
-    image: 'https://i.pravatar.cc/150?img=67',
+    id: "6",
+    name: "Lucas Mendes",
+    stack: "AWS + DevOps",
+    match: "94%",
+    image: "https://i.pravatar.cc/150?img=53",
   },
 ];
 
@@ -101,11 +81,19 @@ export default function HomeScreen({ navigation }: any) {
 
   const [foundCount, setFoundCount] = useState(0);
 
-  const [userName, setUserName] = useState("Desenvolvedor");
+  const [userName] = useState("Desenvolvedor");
+
+  const {
+  width,
+  isMobile,
+  isTablet,
+  isDesktop,
+  isSmallDesktop,
+} = useResponsive();
 
   async function handleLogout() {
     await logout();
-    navigation.replace('Login');
+    navigation.replace("Login");
   }
 
   useEffect(() => {
@@ -114,15 +102,12 @@ export default function HomeScreen({ navigation }: any) {
 
   async function loadInitialData() {
     const id = await getStoredUserId();
+
     if (id) {
-      // Opcional: buscar dados do usuário para o greeting
-      // Para performance, poderíamos salvar o nome no login, 
-      // mas aqui garantimos que está atualizado.
     }
   }
 
   function handleSearchDevs() {
-
     rotateAnim.setValue(0);
 
     setIsSearching(true);
@@ -146,15 +131,11 @@ export default function HomeScreen({ navigation }: any) {
     }, 4500);
 
     const randomDevelopers = [...allDevelopers]
-
       .sort(() => 0.5 - Math.random())
-
       .slice(0, 4)
-
       .map((dev) => ({
         ...dev,
-        distance:
-          `${Math.floor(Math.random() * 10) + 1} metros de distância`,
+        distance: `${Math.floor(Math.random() * 10) + 1} metros de distância`,
       }));
 
     Animated.loop(
@@ -162,11 +143,10 @@ export default function HomeScreen({ navigation }: any) {
         toValue: 1,
         duration: 4500,
         useNativeDriver: true,
-      })
+      }),
     ).start();
 
     setTimeout(() => {
-
       setDevelopers(randomDevelopers);
 
       fadeAnim.setValue(0);
@@ -180,12 +160,10 @@ export default function HomeScreen({ navigation }: any) {
       setIsSearching(false);
 
       setHasSearched(true);
-
     }, 5000);
   }
 
   useEffect(() => {
-
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
@@ -199,7 +177,7 @@ export default function HomeScreen({ navigation }: any) {
           duration: 800,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     ).start();
 
     Animated.loop(
@@ -207,172 +185,197 @@ export default function HomeScreen({ navigation }: any) {
         toValue: 1,
         duration: 4500,
         useNativeDriver: true,
-      })
+      }),
     ).start();
-
   }, []);
 
   const rotate = rotateAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
+    outputRange: ["0deg", "360deg"],
   });
 
   return (
-
     <LinearGradient
-      colors={[
-        '#020B1D',
-        '#07152B',
-        '#0F2A52',
-      ]}
+      colors={["#020B1D", "#07152B", "#0F2A52"]}
       style={{ flex: 1 }}
     >
-
       <SafeAreaView style={styles.container}>
-
         <StatusBar
           translucent
           backgroundColor="transparent"
           barStyle="light-content"
         />
 
-        {/* TOPO */}
+        <View
+          style={{
+            width: "100%",
+            maxWidth: 1400,
+            alignSelf: "center",
+            paddingHorizontal: isMobile ? 0 : 22,
+            flex: 1,
+          }}
+        >
+          {/* TOPO */}
 
-        {
-          !isSearching && (
-
+          {!isSearching && (
             <View style={styles.topContainer}>
+              <View
+                style={[
+                  styles.topHeader,
+                  {
+                    flexDirection: width < 430 ? "column" : "row",
+                    alignItems: width < 430 ? "flex-start" : "center",
+                    gap: width < 430 ? 18 : 0,
+                  },
+                ]}
+              >
+                <View>
+                  <Text style={styles.greeting}>Olá, {userName} 👋</Text>
 
-              <View>
+                  <Text style={styles.welcome}>Que bom te ver por aqui!</Text>
+                </View>
 
-                <Text style={styles.greeting}>
-                  Olá, {userName} 👋
-                </Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("MyProfile")}
+                >
+                  <Image
+                    source={{
+                      uri: "https://i.pravatar.cc/150?img=32",
+                    }}
+                    style={[
+                      styles.profileImage,
+                      {
+                        width: isMobile ? 74 : 60,
+                        height: isMobile ? 74 : 60,
+                        borderRadius: isMobile ? 37 : 30,
+                      },
+                    ] as ImageStyle}
+                  />
 
-                <Text style={styles.welcome}>
-                  Que bom te ver por aqui!
-                </Text>
-
+                  <View style={styles.onlineProfile} />
+                </TouchableOpacity>
               </View>
 
-              <TouchableOpacity
-                style={[styles.logoutButton, { marginRight: 10, borderColor: '#3B82F6' }]}
-                onPress={() => navigation.navigate('Feed')}
+              <View
+                style={[
+                  styles.topActions,
+                  {
+                    width: isMobile ? "100%" : "auto",
+                    justifyContent: isMobile ? "space-between" : "flex-start",
+                  },
+                ]}
               >
-                <Ionicons name="images-outline" size={18} color="#3B82F6" />
-                <Text style={[styles.logoutText, { color: '#3B82F6', marginLeft: 5 }]}>Feed</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.logoutButton,
+                    {
+                      borderColor: "#3B82F6",
+                    },
+                  ]}
+                  onPress={() => navigation.navigate("Feed")}
+                >
+                  <Ionicons name="images-outline" size={18} color="#3B82F6" />
 
-              <TouchableOpacity
-                style={styles.logoutButton}
-                onPress={handleLogout}
-              >
+                  <Text
+                    style={[
+                      styles.logoutText,
+                      {
+                        color: "#3B82F6",
+                        marginLeft: 5,
+                      },
+                    ]}
+                  >
+                    Feed
+                  </Text>
+                </TouchableOpacity>
 
-                <Ionicons
-                  name="log-out-outline"
-                  style={styles.logoutIcon}
-                />
+                <TouchableOpacity
+                  style={styles.logoutButton}
+                  onPress={handleLogout}
+                >
+                  <Ionicons name="log-out-outline" style={styles.logoutIcon} />
 
-                <Text style={styles.logoutText}>
-                  Sair
-                </Text>
-
-              </TouchableOpacity>
-
+                  <Text style={styles.logoutText}>Sair</Text>
+                </TouchableOpacity>
+              </View>
             </View>
+          )}
 
-          )
-        }
+          {/* BRAND */}
 
-        {/* BRAND */}
-
-        {
-          !isSearching && (
-
+          {!isSearching && (
             <View style={styles.brandContainer}>
-
-              <View style={styles.brandLeft}>
-
+              <View
+                style={[
+                  styles.brandLeft,
+                  {
+                    alignItems: isMobile ? "flex-start" : "center",
+                  },
+                ]}
+              >
                 <Image
-                  source={require('../assets/logo.png')}
+                  source={require("../assets/logo.png")}
                   style={styles.logo as ImageStyle}
                 />
 
                 <View>
-
-                  <Text style={styles.title}>
+                  <Text
+                    style={[
+                      styles.title,
+                      {
+                        fontSize: isMobile ? 18 : 26,
+                      },
+                    ]}
+                  >
                     Network <Text style={styles.devText}>Dev</Text>
                   </Text>
 
                   <Text
-                    style={styles.subtitle}
-                    numberOfLines={1}
+                    style={[
+                      styles.subtitle,
+                      {
+                        maxWidth: isMobile ? width - 140 : 420,
+                      },
+                    ]}
                   >
                     Encontre devs com interesses em comum
                   </Text>
-
                 </View>
-
               </View>
-
-              <TouchableOpacity
-                onPress={() => navigation.navigate('MyProfile')}
-              >
-
-                <Image
-                  source={{
-                    uri: 'https://i.pravatar.cc/150?img=32',
-                  }}
-                  style={styles.profileImage as ImageStyle}
-                />
-
-                <View style={styles.onlineProfile} />
-
-              </TouchableOpacity>
-
             </View>
+          )}
 
-          )
-        }
+          {/* BLUETOOTH */}
 
-        {/* BLUETOOTH */}
-
-        {
-          !isSearching && (
-
+          {!isSearching && (
             <View style={styles.bluetoothStatus}>
-
               <View style={styles.bluetoothStatusLeft}>
-
                 <View style={styles.bluetoothDot} />
 
                 <Text style={styles.bluetoothMiniText}>
                   Bluetooth conectado
                 </Text>
-
               </View>
 
-              <Text style={styles.bluetoothMiniDevice}>
-                ESP32 ativo
-              </Text>
-
+              <Text style={styles.bluetoothMiniDevice}>ESP32 ativo</Text>
             </View>
+          )}
 
-          )
-        }
+          {/* BOTÃO INICIAL */}
 
-        {/* BOTÃO INICIAL */}
-
-        {
-          !isSearching && !hasSearched && (
-
+          {!isSearching && !hasSearched && (
             <View style={styles.initialContainer}>
-
               <TouchableOpacity
-                style={styles.searchButton}
+                style={[
+                  styles.searchButton,
+                  {
+                    width: isMobile ? "100%" : "auto",
+                    maxWidth: 420,
+                    paddingHorizontal: isMobile ? 18 : 30,
+                  },
+                ]}
                 onPress={handleSearchDevs}
               >
-
                 <Ionicons
                   name="search-outline"
                   size={22}
@@ -380,24 +383,15 @@ export default function HomeScreen({ navigation }: any) {
                   style={{ marginRight: 10 }}
                 />
 
-                <Text style={styles.searchButtonText}>
-                  Procurar Devs
-                </Text>
-
+                <Text style={styles.searchButtonText}>Procurar Devs</Text>
               </TouchableOpacity>
-
             </View>
+          )}
 
-          )
-        }
+          {/* RADAR */}
 
-        {/* RADAR */}
-
-        {
-          isSearching && (
-
+          {isSearching && (
             <View style={styles.searchingContainer}>
-
               <Text style={styles.searchingTitle}>
                 Buscando devs próximos...
               </Text>
@@ -407,7 +401,6 @@ export default function HomeScreen({ navigation }: any) {
               </Text>
 
               <View style={styles.radarContainer}>
-
                 <View style={styles.radarGlow} />
 
                 <View style={styles.circleOne} />
@@ -431,9 +424,7 @@ export default function HomeScreen({ navigation }: any) {
                   style={[
                     styles.centerDot,
                     {
-                      transform: [
-                        { scale: pulseAnim }
-                      ],
+                      transform: [{ scale: pulseAnim }],
                     },
                   ]}
                 />
@@ -443,39 +434,27 @@ export default function HomeScreen({ navigation }: any) {
                 <View style={styles.dotTwo} />
 
                 <View style={styles.dotThree} />
-
               </View>
 
-              {
-                foundCount > 0 && (
-
-                  <Text style={styles.foundText}>
-                    +{foundCount} desenvolvedor(es) encontrado(s)
-                  </Text>
-
-                )
-              }
+              {foundCount > 0 && (
+                <Text style={styles.foundText}>
+                  +{foundCount} desenvolvedor(es) encontrado(s)
+                </Text>
+              )}
 
               <Text style={styles.searchingInfo}>
                 Escaneando conexões BLE...
               </Text>
-
             </View>
+          )}
 
-          )
-        }
+          {/* DEVS */}
 
-        {/* DEVS DETECTADOS */}
-
-        {
-          hasSearched && !isSearching && (
-
+          {hasSearched && !isSearching && (
             <Animated.View
               style={{
                 flex: 1,
-
                 opacity: fadeAnim,
-
                 transform: [
                   {
                     translateY: fadeAnim.interpolate({
@@ -486,11 +465,17 @@ export default function HomeScreen({ navigation }: any) {
                 ],
               }}
             >
-
-              <View style={styles.sectionHeader}>
-
+              <View
+                style={[
+                  styles.sectionHeader,
+                  {
+                    flexDirection: width < 500 ? "column" : "row",
+                    alignItems: width < 500 ? "flex-start" : "center",
+                    gap: width < 500 ? 10 : 0,
+                  },
+                ]}
+              >
                 <View style={styles.sectionLeft}>
-
                   <Ionicons
                     name="people-outline"
                     size={22}
@@ -501,93 +486,143 @@ export default function HomeScreen({ navigation }: any) {
                   <Text style={styles.sectionTitle}>
                     Desenvolvedores detectados
                   </Text>
-
                 </View>
 
                 <View style={styles.badge}>
-
                   <Text style={styles.badgeText}>
                     {developers.length} próximos
                   </Text>
-
                 </View>
-
               </View>
 
               <FlatList
                 data={developers}
                 keyExtractor={(item) => item.id}
                 showsVerticalScrollIndicator={false}
-
+                numColumns={
+                  isMobile
+                    ? 1
+                    : width < 1400
+                    ? 2
+                    : 2
+                }
+                columnWrapperStyle={
+                  !isMobile
+                    ? {
+                        gap: 18,
+                        justifyContent: "flex-start",
+                        marginBottom: 18,
+                      }
+                    : undefined
+                }
                 contentContainerStyle={{
-                  paddingBottom: 120,
+                  paddingBottom: isMobile ? 180 : 120,
                 }}
-
                 renderItem={({ item }) => (
-
                   <TouchableOpacity
                     activeOpacity={0.92}
-                    style={styles.card}
+                    style={[
+                      styles.card,
+                      isDesktop && styles.cardDesktop,
+                      {
+                        padding: width < 380 ? 12 : 16,
+                        flexDirection: width < 430 ? "column" : "row",
+                        alignItems: width < 430 ? "center" : "flex-start",
+                      }
+                    ]}
+                    onPress={() => navigation.navigate("Connection")}
                   >
-
-                    <View style={styles.cardLeft}>
-
+                    <View
+                      style={[
+                        styles.cardLeft,
+                        {
+                          marginRight: width < 430 ? 0 : 16,
+                          marginBottom: width < 430 ? 12 : 0,
+                        },
+                      ]}
+                    > 
                       <Image
                         source={{ uri: item.image }}
                         style={styles.avatar as ImageStyle}
                       />
 
                       <View style={styles.onlineIndicator} />
-
                     </View>
 
-                    <View style={styles.cardContent}>
-
-                      <View style={styles.cardHeader}>
-
+                    <View
+                      style={[
+                        styles.cardContent,
+                        {
+                          alignItems: width < 430 ? "center" : "flex-start",
+                          marginTop: width < 430 ? 14 : 0,
+                        },
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.cardHeader,
+                          {
+                            width: "100%",
+                            flexDirection: width < 430 ? "column" : "row",
+                            alignItems: width < 430 ? "center" : "flex-start",
+                            gap: width < 430 ? 10 : 0,
+                          },
+                        ]}
+                     >
                         <View>
-
-                          <Text style={styles.name}>
+                          <Text
+                            style={[
+                              styles.name,
+                              {
+                                fontSize: width < 380 ? 16 : 18,
+                              }
+                            ]}
+                            numberOfLines={1}
+                          >
                             {item.name}
                           </Text>
 
-                          <Text style={styles.stack}>
+                          <Text
+                            style={[
+                              styles.stack,
+                              {
+                                fontSize: width < 380 ? 13 : 15,
+                              }
+                            ]}
+                            numberOfLines={1}
+                          >
                             {item.stack}
                           </Text>
-
                         </View>
 
                         <View style={styles.matchBadge}>
-
-                          <Text style={styles.matchText}>
-                            {item.match}
-                          </Text>
-
+                          <Text style={styles.matchText}>{item.match}</Text>
                         </View>
-
                       </View>
 
                       <Text style={styles.distance}>📍 {item.distance}</Text>
 
                       <TouchableOpacity
                         style={styles.connectButton}
-                        onPress={() => navigation.navigate('Connection')}
+                        onPress={() => navigation.navigate("Connection")}
                       >
                         <Text style={styles.connectText}>Conectar</Text>
                       </TouchableOpacity>
-
                     </View>
-
                   </TouchableOpacity>
-
                 )}
               />
 
               <TouchableOpacity
-                style={styles.searchAgainButton}
+                style={[
+                  styles.searchAgainButton,
+                  {
+                    width: isMobile ? "100%" : "auto",
+                    alignSelf: isMobile ? "center" : "flex-start",
+                  },
+                ]}
                 onPress={handleSearchDevs}
               >
-
                 <Ionicons
                   name="refresh-outline"
                   size={20}
@@ -595,58 +630,59 @@ export default function HomeScreen({ navigation }: any) {
                   style={{ marginRight: 8 }}
                 />
 
-                <Text style={styles.searchAgainText}>
-                  Buscar Novamente
-                </Text>
-
+                <Text style={styles.searchAgainText}>Buscar Novamente</Text>
               </TouchableOpacity>
-
             </Animated.View>
-
-          )
-        }
-
+          )}
+        </View>
       </SafeAreaView>
-
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-
   container: {
     flex: 1,
     paddingHorizontal: 22,
   },
 
-  /* TOPO */
-
   topContainer: {
     marginTop: 55,
     marginBottom: 26,
+    gap: 18,
+  },
 
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  topHeader: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  topActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 16,
   },
 
   greeting: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
     marginTop: 18,
   },
 
   welcome: {
-    color: '#A7B1CB',
+    color: "#A7B1CB",
     fontSize: 16,
     marginTop: 4,
   },
 
   logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
 
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -654,80 +690,74 @@ const styles = StyleSheet.create({
     borderRadius: 10,
 
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: "rgba(255,255,255,0.12)",
 
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: "rgba(255,255,255,0.03)",
   },
 
   logoutIcon: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 18,
     marginRight: 8,
   },
 
   logoutText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
+    color: "#FFFFFF",
+    fontWeight: "700",
     fontSize: 13,
   },
 
-  /* BRAND */
-
   brandContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 18,
   },
 
   brandLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
 
   logo: {
-    width: 105,
-    height: 105,
+    width: 82,
+    height: 82,
 
-    resizeMode: 'contain',
+    resizeMode: "contain",
 
-    marginRight: -28,
-    marginLeft: -30,
-    marginTop: -18,
+    marginRight: -18,
+    marginLeft: -18,
   },
 
   title: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: "800",
   },
 
   devText: {
-    color: '#3B82F6',
+    color: "#3B82F6",
   },
 
   subtitle: {
-    color: '#AAB4CF',
+    color: "#AAB4CF",
     marginTop: 4,
     fontSize: 12,
-    width: 260,
+    maxWidth: 220,
   },
 
   profileImage: {
     width: 60,
     height: 60,
+
     borderRadius: 31,
 
-    marginTop: -60,
-
     borderWidth: 2,
-    borderColor: '#3B82F6',
+    borderColor: "#3B82F6",
   },
 
   onlineProfile: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 3,
     right: 0,
 
@@ -735,35 +765,33 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 9,
 
-    backgroundColor: '#00FF88',
+    backgroundColor: "#00FF88",
 
     borderWidth: 2,
-    borderColor: '#020B1D',
+    borderColor: "#020B1D",
   },
 
-  /* BLUETOOTH */
-
   bluetoothStatus: {
-    flexDirection: 'row',
+    flexDirection: "row",
 
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    justifyContent: "space-between",
+    alignItems: "center",
 
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: "rgba(255,255,255,0.05)",
 
     paddingHorizontal: 14,
     paddingVertical: 10,
 
     borderRadius: 16,
 
-   marginTop: -10,
+    marginTop: -10,
     marginBottom: 18,
-},
+  },
 
   bluetoothStatusLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-},
+    flexDirection: "row",
+    alignItems: "center",
+  },
 
   bluetoothDot: {
     width: 10,
@@ -771,43 +799,42 @@ const styles = StyleSheet.create({
 
     borderRadius: 99,
 
-    backgroundColor: '#00FF88',
+    backgroundColor: "#00FF88",
 
     marginRight: 10,
-},
+  },
 
   bluetoothMiniText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: '600',
-},
+    fontWeight: "600",
+  },
 
   bluetoothMiniDevice: {
-    color: '#7C8BA1',
+    color: "#7C8BA1",
     fontSize: 13,
-},
-  /* INITIAL */
+  },
 
   initialContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingBottom: 120,
   },
 
   searchButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: "#2563EB",
 
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
 
     paddingHorizontal: 30,
     paddingVertical: 18,
 
     borderRadius: 18,
 
-    shadowColor: '#2563EB',
+    shadowColor: "#2563EB",
     shadowOpacity: 0.45,
     shadowRadius: 18,
 
@@ -815,30 +842,28 @@ const styles = StyleSheet.create({
   },
 
   searchButtonText: {
-    color: '#fff',
+    color: "#fff",
 
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontSize: 16,
   },
-
-  /* SEARCHING */
 
   searchingContainer: {
     flex: 1,
 
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
 
     paddingBottom: 80,
   },
 
   searchingTitle: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
 
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: "700",
 
-    textAlign: 'center',
+    textAlign: "center",
 
     width: 240,
 
@@ -848,50 +873,48 @@ const styles = StyleSheet.create({
   },
 
   searchingSubtitle: {
-    color: '#AAB4CF',
+    color: "#AAB4CF",
 
     fontSize: 15,
 
-    textAlign: 'center',
+    textAlign: "center",
 
     marginBottom: 50,
   },
 
   searchingInfo: {
-    color: '#6B7A99',
+    color: "#6B7A99",
 
     fontSize: 14,
 
-    textAlign: 'center',
+    textAlign: "center",
 
     lineHeight: 22,
   },
 
-  /* RADAR */
-
   radarContainer: {
     height: 300,
 
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
 
     marginBottom: 22,
 
-    width: '100%',
-    overflow: 'hidden',
+    width: "100%",
+    overflow: "hidden",
   },
 
   radarGlow: {
-    position: 'absolute',
+    position: "absolute",
 
     width: 260,
     height: 260,
 
     borderRadius: 130,
 
-    backgroundColor: 'rgba(59,130,246,0.05)',
+    backgroundColor: "rgba(59,130,246,0.05)",
 
-    shadowColor: '#2563EB',
+    shadowColor: "#2563EB",
 
     shadowOpacity: 0.45,
 
@@ -901,13 +924,13 @@ const styles = StyleSheet.create({
   },
 
   beamContainer: {
-    position: 'absolute',
+    position: "absolute",
     width: 260,
     height: 260,
   },
 
   circleOne: {
-    position: 'absolute',
+    position: "absolute",
 
     width: 250,
     height: 250,
@@ -916,13 +939,13 @@ const styles = StyleSheet.create({
 
     borderWidth: 1,
 
-    borderColor: 'rgba(59,130,246,0.20)',
+    borderColor: "rgba(59,130,246,0.20)",
 
-    alignSelf: 'center',
+    alignSelf: "center",
   },
 
   circleTwo: {
-    position: 'absolute',
+    position: "absolute",
 
     width: 180,
     height: 180,
@@ -931,11 +954,11 @@ const styles = StyleSheet.create({
 
     borderWidth: 1,
 
-    borderColor: 'rgba(59,130,246,0.20)',
+    borderColor: "rgba(59,130,246,0.20)",
   },
 
   circleThree: {
-    position: 'absolute',
+    position: "absolute",
 
     width: 110,
     height: 110,
@@ -944,17 +967,17 @@ const styles = StyleSheet.create({
 
     borderWidth: 1,
 
-    borderColor: 'rgba(59,130,246,0.20)',
+    borderColor: "rgba(59,130,246,0.20)",
   },
 
   beam: {
     width: 120,
     height: 120,
 
-    backgroundColor: 'rgba(59,130,246,0.06)',
+    backgroundColor: "rgba(59,130,246,0.06)",
 
     borderTopRightRadius: 120,
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 140,
   },
@@ -965,11 +988,11 @@ const styles = StyleSheet.create({
 
     borderRadius: 11,
 
-    backgroundColor: '#3B82F6',
+    backgroundColor: "#3B82F6",
   },
 
   dotOne: {
-    position: 'absolute',
+    position: "absolute",
 
     top: 65,
     right: 72,
@@ -979,11 +1002,11 @@ const styles = StyleSheet.create({
 
     borderRadius: 8,
 
-    backgroundColor: '#00FF88',
+    backgroundColor: "#00FF88",
   },
 
   dotTwo: {
-    position: 'absolute',
+    position: "absolute",
 
     left: 88,
     top: 135,
@@ -993,11 +1016,11 @@ const styles = StyleSheet.create({
 
     borderRadius: 8,
 
-    backgroundColor: '#3B82F6',
+    backgroundColor: "#3B82F6",
   },
 
   dotThree: {
-    position: 'absolute',
+    position: "absolute",
 
     left: 115,
     bottom: 72,
@@ -1007,35 +1030,33 @@ const styles = StyleSheet.create({
 
     borderRadius: 8,
 
-    backgroundColor: '#00FF88',
+    backgroundColor: "#00FF88",
   },
 
   foundText: {
-    color: '#00FF88',
+    color: "#00FF88",
 
     fontSize: 16,
 
-    fontWeight: '700',
+    fontWeight: "700",
 
     marginBottom: 18,
 
-    textAlign: 'center',
+    textAlign: "center",
   },
 
-  /* SECTION */
-
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
 
     marginBottom: 16,
     marginTop: 10,
   },
 
   sectionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
 
@@ -1045,13 +1066,13 @@ const styles = StyleSheet.create({
   },
 
   sectionTitle: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 
   badge: {
-    backgroundColor: 'rgba(59,130,246,0.12)',
+    backgroundColor: "rgba(59,130,246,0.12)",
 
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -1062,27 +1083,25 @@ const styles = StyleSheet.create({
   },
 
   badgeText: {
-    color: '#3B82F6',
-    fontWeight: '700',
+    color: "#3B82F6",
+    fontWeight: "700",
     fontSize: 13,
   },
 
-  /* CARD */
-
   card: {
-    backgroundColor: '#09162D',
-
+    backgroundColor: "#09162D",
     borderRadius: 24,
-
     padding: 14,
-
-    flexDirection: 'row',
-
+    flexDirection: "row",
     marginBottom: 18,
-
     borderWidth: 1,
+    borderColor: "rgba(59,130,246,0.12)",
+  },
 
-    borderColor: 'rgba(59,130,246,0.12)',
+  cardDesktop: {
+    flex: 1,
+    minWidth: 320,
+    maxWidth: 530,
   },
 
   cardLeft: {
@@ -1092,13 +1111,11 @@ const styles = StyleSheet.create({
   avatar: {
     width: 72,
     height: 72,
-
     borderRadius: 36,
   },
 
   onlineIndicator: {
-    position: 'absolute',
-
+    position: "absolute",
     bottom: 60,
     right: 6,
 
@@ -1107,11 +1124,10 @@ const styles = StyleSheet.create({
 
     borderRadius: 7,
 
-    backgroundColor: '#00FF88',
+    backgroundColor: "#00FF88",
 
     borderWidth: 2,
-
-    borderColor: '#09162D',
+    borderColor: "#09162D",
   },
 
   cardContent: {
@@ -1119,36 +1135,32 @@ const styles = StyleSheet.create({
   },
 
   cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
 
   name: {
-    color: '#FFFFFF',
-
+    color: "#FFFFFF",
     fontSize: 18,
-
-    fontWeight: '700',
+    fontWeight: "700",
   },
 
   stack: {
-    color: '#3B82F6',
-
+    color: "#3B82F6",
     fontSize: 15,
-
     marginTop: 4,
   },
 
   matchBadge: {
-    backgroundColor: 'rgba(59,130,246,0.12)',
+    backgroundColor: "rgba(59,130,246,0.12)",
 
     paddingHorizontal: 10,
     paddingVertical: 5,
 
     borderRadius: 12,
 
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
 
     minWidth: 60,
 
@@ -1156,44 +1168,36 @@ const styles = StyleSheet.create({
   },
 
   matchText: {
-    color: '#3B82F6',
-
-    fontWeight: '700',
-
+    color: "#3B82F6",
+    fontWeight: "700",
     fontSize: 14,
   },
 
   distance: {
-    color: '#B5C0DA',
+    color: "#B5C0DA",
     fontSize: 14,
   },
 
   connectButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: "#2563EB",
     paddingVertical: 10,
     borderRadius: 14,
     marginTop: 14,
-    alignItems: 'center',
-    shadowColor: '#2563EB',
-    shadowOpacity: 0.20,
-    shadowRadius: 8,
-    elevation: 4,
+    alignItems: "center",
   },
 
   connectText: {
-    color: '#FFFFFF',
-
-    fontWeight: '700',
-
+    color: "#FFFFFF",
+    fontWeight: "700",
     fontSize: 15,
   },
 
   searchAgainButton: {
-    backgroundColor: '#1d4fd8fa',
+    backgroundColor: "#1d4fd8fa",
 
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
 
     paddingVertical: 14,
 
@@ -1201,20 +1205,13 @@ const styles = StyleSheet.create({
 
     marginTop: 6,
     marginBottom: 55,
-
-    shadowColor: '#2564ebdd',
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-
-    elevation: 6,
   },
 
   searchAgainText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
 
-    fontWeight: 'bold',
+    fontWeight: "bold",
 
     fontSize: 15,
   },
-
 });

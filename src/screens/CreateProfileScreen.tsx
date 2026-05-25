@@ -1,3 +1,4 @@
+import { useResponsive } from "../utils/responsive";
 import {
   View,
   Text,
@@ -21,6 +22,13 @@ export default function CreateProfileScreen({ navigation }: any) {
   const translateY = useRef(new Animated.Value(300)).current;
   const [showStacks, setShowStacks] = useState(false);
   const [selectedStacks, setSelectedStacks] = useState<string[]>([]);
+  const {
+  width,
+  isMobile,
+  isTablet,
+  isDesktop,
+  isSmallDesktop,
+} = useResponsive();
 
   const stackOptions = [
     {
@@ -132,24 +140,45 @@ export default function CreateProfileScreen({ navigation }: any) {
         <Animated.View
           style={[
             styles.card,
-            { transform: [{ translateY }] }
+            {
+              transform: [{ translateY }],
+              paddingHorizontal: width < 380 ? 18 : 26,
+              paddingVertical: width < 380 ? 18 : 24,
+              maxWidth: isTablet ? 620 : 520,
+            },
           ]}
         >
-          {/* ADICIONADO AQUI O SCROLLVIEW QUE FALTAVA NO TOPO */}
           <ScrollView 
             contentContainerStyle={styles.scrollContent} 
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.handle} />
 
-            <Text style={styles.title}>Crie seu perfil</Text>
+            <Text
+              style={[
+                styles.title,
+                {
+                  fontSize: width < 380 ? 28 : 34,
+                }
+              ]}
+            >
+              Crie seu perfil</Text>
             <Text style={styles.subtitle}>Complete seu perfil para começar</Text>
 
             {/* NOME */}
-            <View style={styles.inputBox}>
+            <View
+              style={[
+                styles.inputBox,
+                {
+                  paddingVertical: isMobile ? 4 : 8,
+                }
+              ]}
+
+            >
               <Ionicons name="person-outline" size={18} color="#888" />
               <TextInput
                 placeholder="Nome completo"
+                placeholderTextColor="#94A3B8"
                 style={styles.input}
                 value={form.name}
                 onChangeText={(text) => setForm({ ...form, name: text })}
@@ -158,10 +187,18 @@ export default function CreateProfileScreen({ navigation }: any) {
             {errors.name && <Text style={styles.error}>{errors.name}</Text>}
 
             {/* EMAIL */}
-            <View style={styles.inputBox}>
+            <View
+              style={[
+                styles.inputBox,
+                {
+                  paddingVertical: isMobile ? 4 : 8,
+                }
+              ]}
+            >
               <Ionicons name="mail-outline" size={18} color="#888" />
               <TextInput
                 placeholder="Email"
+                placeholderTextColor="#94A3B8"
                 style={styles.input}
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -172,10 +209,18 @@ export default function CreateProfileScreen({ navigation }: any) {
             {errors.email && <Text style={styles.error}>{errors.email}</Text>}
 
             {/* SENHA */}
-            <View style={styles.inputBox}>
+            <View
+              style={[
+                styles.inputBox,
+                {
+                  paddingVertical: isMobile ? 4 : 8,
+                }
+              ]}
+            >
               <Ionicons name="lock-closed-outline" size={18} color="#888" />
               <TextInput
                 placeholder="Senha"
+                placeholderTextColor="#94A3B8"
                 secureTextEntry
                 style={styles.input}
                 value={form.password}
@@ -185,10 +230,18 @@ export default function CreateProfileScreen({ navigation }: any) {
             {errors.password && <Text style={styles.error}>{errors.password}</Text>}
 
             {/* BIO */}
-            <View style={styles.inputBox}>
+            <View
+              style={[
+                styles.inputBox,
+                {
+                  paddingVertical: isMobile ? 4 : 8,
+                }
+              ]}
+            >
               <Ionicons name="document-text-outline" size={18} color="#888" />
               <TextInput
                 placeholder="Bio"
+                placeholderTextColor="#94A3B8"
                 style={styles.input}
                 value={form.bio}
                 onChangeText={(text) => setForm({ ...form, bio: text })}
@@ -262,10 +315,18 @@ export default function CreateProfileScreen({ navigation }: any) {
             </View>
 
             {/* CARGO */}
-            <View style={styles.inputBox}>
+            <View
+              style={[
+                styles.inputBox,
+                {
+                  paddingVertical: isMobile ? 4 : 8,
+                }
+              ]}
+            >
               <Ionicons name="briefcase-outline" size={18} color="#888" />
               <TextInput
                 placeholder="Cargo / Posição"
+                placeholderTextColor="#94A3B8"
                 style={styles.input}
                 value={form.position}
                 onChangeText={(text) => setForm({ ...form, position: text })}
@@ -281,7 +342,15 @@ export default function CreateProfileScreen({ navigation }: any) {
             </View>
 
             {/* BOTÃO */}
-            <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+            <TouchableOpacity
+              style={[
+                styles.button,
+                {
+                  paddingVertical: isMobile ? 14 : 18,
+                },
+              ]}
+              onPress={handleSubmit}
+            >
               <Text style={styles.buttonText}>Entrar na rede</Text>
             </TouchableOpacity>
 
@@ -314,18 +383,20 @@ const styles = StyleSheet.create({
   },
   keyboardView: {
     width: '100%',
+    paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 25,
-    paddingHorizontal: 20,
-    paddingTop: 5,
-    paddingBottom: 5,
+    borderRadius: 28,
+    paddingHorizontal: 24,
+    paddingTop: 10,
+    paddingBottom: 10,
     width: '100%',
-    maxWidth: 500,
-    maxHeight: '90%',
+    maxWidth: 580,
+    minWidth: 320,
+    maxHeight: '92%',
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -344,11 +415,16 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '800',
+    textAlign: 'center',
+    color: '#111827',
   },
   subtitle: {
+    textAlign: 'center',
+    fontSize: 16,
+    lineHeight: 24,
     color: '#666',
+    marginTop: 6,
     marginBottom: 15,
   },
   inputBox: {
@@ -357,21 +433,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
     paddingHorizontal: 10,
     borderRadius: 12,
-    marginBottom: 3,
+    marginBottom: 10,
   },
   input: {
     flex: 1,
-    padding: 10,
+    paddingHorizontal: 10,
+    fontSize: 16,
   },
   dropdown: {
+    width: '100%',
+    maxHeight: 240,
+    borderRadius: 16,
+    marginTop: 6,
     backgroundColor: '#fff',
-    borderRadius: 12,
-    marginTop: 5,
-    marginBottom: 5,
-    maxHeight: 220,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    overflow: 'hidden',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 12, 
   },
   categoryTitle: {
     fontSize: 13,
@@ -409,10 +487,9 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#3B5BDB',
-    padding: 13,
-    borderRadius: 14,
+    borderRadius: 18,
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 18,
   },
   buttonText: {
     color: '#fff',
