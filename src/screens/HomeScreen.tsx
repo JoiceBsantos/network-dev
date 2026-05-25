@@ -211,20 +211,29 @@ export default function HomeScreen({ navigation }: any) {
             width: "100%",
             maxWidth: 1400,
             alignSelf: "center",
-            paddingHorizontal: isMobile ? 0 : 22,
+            paddingHorizontal: isMobile ? 18 : 32,
             flex: 1,
           }}
         >
           {/* TOPO */}
 
           {!isSearching && (
-            <View style={styles.topContainer}>
+            <View
+              style={[
+                styles.topContainer,
+                {
+                  marginTop: isMobile ? 26 : 24,
+                },
+              ]}
+             >        
+            
               <View
                 style={[
                   styles.topHeader,
                   {
                     flexDirection: width < 430 ? "column" : "row",
                     alignItems: width < 430 ? "flex-start" : "center",
+                    justifyContent:"space-between",
                     gap: width < 430 ? 18 : 0,
                   },
                 ]}
@@ -323,7 +332,7 @@ export default function HomeScreen({ navigation }: any) {
                     style={[
                       styles.title,
                       {
-                        fontSize: isMobile ? 18 : 26,
+                        fontSize: isMobile ? 16 : 26,
                       },
                     ]}
                   >
@@ -483,7 +492,14 @@ export default function HomeScreen({ navigation }: any) {
                     style={styles.peopleIcon}
                   />
 
-                  <Text style={styles.sectionTitle}>
+                  <Text
+                    style={[
+                      styles.sectionTitle,
+                      {
+                        fontSize: isMobile ? 15 : 28,
+                      },
+                    ]}
+                  >
                     Desenvolvedores detectados
                   </Text>
                 </View>
@@ -509,7 +525,7 @@ export default function HomeScreen({ navigation }: any) {
                 columnWrapperStyle={
                   !isMobile
                     ? {
-                        gap: 18,
+                        gap: 22,
                         justifyContent: "flex-start",
                         marginBottom: 18,
                       }
@@ -525,9 +541,7 @@ export default function HomeScreen({ navigation }: any) {
                       styles.card,
                       isDesktop && styles.cardDesktop,
                       {
-                        padding: width < 380 ? 12 : 16,
-                        flexDirection: width < 430 ? "column" : "row",
-                        alignItems: width < 430 ? "center" : "flex-start",
+                        width: isMobile ? "100%" : "48%",
                       }
                     ]}
                     onPress={() => navigation.navigate("Connection")}
@@ -617,8 +631,8 @@ export default function HomeScreen({ navigation }: any) {
                 style={[
                   styles.searchAgainButton,
                   {
-                    width: isMobile ? "100%" : "auto",
-                    alignSelf: isMobile ? "center" : "flex-start",
+                    width: isMobile ? "100%" : 460,
+                    alignSelf: "center",
                   },
                 ]}
                 onPress={handleSearchDevs}
@@ -647,9 +661,8 @@ const styles = StyleSheet.create({
   },
 
   topContainer: {
-    marginTop: 55,
     marginBottom: 26,
-    gap: 18,
+    gap: 10,
   },
 
   topHeader: {
@@ -663,7 +676,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    marginTop: 16,
+    marginTop: 10,
   },
 
   greeting: {
@@ -710,7 +723,8 @@ const styles = StyleSheet.create({
   brandContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 18,
+    marginBottom: 8,
+    marginTop: -12,
   },
 
   brandLeft: {
@@ -1051,7 +1065,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
 
     marginBottom: 16,
-    marginTop: 10,
+    marginTop: 0,
   },
 
   sectionLeft: {
@@ -1089,19 +1103,24 @@ const styles = StyleSheet.create({
   },
 
   card: {
+    minHeight: 150,
     backgroundColor: "#09162D",
     borderRadius: 24,
-    padding: 14,
+    padding: 18,
     flexDirection: "row",
-    marginBottom: 18,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: "rgba(59,130,246,0.12)",
+    shadowColor: "#2563EB",
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 8,
   },
 
   cardDesktop: {
     flex: 1,
     minWidth: 320,
-    maxWidth: 530,
+    maxWidth: 700,
   },
 
   cardLeft: {
@@ -1180,10 +1199,16 @@ const styles = StyleSheet.create({
 
   connectButton: {
     backgroundColor: "#2563EB",
-    paddingVertical: 10,
+    paddingVertical: 14,
     borderRadius: 14,
     marginTop: 14,
     alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    shadowColor: "#2563EB",
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 8,
   },
 
   connectText: {
@@ -1203,7 +1228,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 16,
 
-    marginTop: 6,
+    marginTop: 18,
     marginBottom: 55,
   },
 
