@@ -533,23 +533,27 @@ export default function ConnectionScreen({
               style={styles.handshakeGlow}
             />
 
-            <LottieView
+            <View
+              style={{
+                width: isMobile ? 180 : 220,
+                height: isMobile ? 180 : 220,
+                justifyContent: "center",
+                alignSelf: "center",
+                overflow: "hidden",
+              }}
+            >
+
+              <LottieView
               source={require("../assets/handshake.json")}
               autoPlay
               loop
-              style={[
-                styles.handshakeAnimation,
-                {
-                  width: isMobile
-                    ? 180
-                    : 170,
-
-                  height: isMobile
-                    ? 180
-                    : 170,
-                },
-              ]}
+              resizeMode="contain"
+              style={{
+                width: isMobile ? 180 : 220,
+                height: isMobile ? 180 : 220,
+              }}
             />
+            </View>
 
             <Text
               style={[

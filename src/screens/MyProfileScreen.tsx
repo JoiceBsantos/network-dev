@@ -17,6 +17,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import * as ImagePicker from 'expo-image-picker';
 import { api } from "../services/api";
 import { getStoredUserId } from "../services/auth";
+import { useResponsive } from "../utils/responsive";
 
 export default function MyProfileScreen({ navigation }: any) {
   const [isEditing, setIsEditing] = useState(false);
@@ -111,6 +112,11 @@ export default function MyProfileScreen({ navigation }: any) {
   };
 
   const [loading, setLoading] = useState(false);
+  const {
+  isMobile,
+  isTablet,
+  isDesktop,
+} = useResponsive();
   const [userId, setUserId] = useState<string | null>(null);
   const [name, setName] = useState("Joice Barbosa");
 
@@ -168,6 +174,7 @@ export default function MyProfileScreen({ navigation }: any) {
     try {
       const id = await getStoredUserId();
       await api.put(`/users/${id}`, {
+        name,
         bio,
         stack: selectedStacks.join(", "),
         position,
@@ -175,7 +182,11 @@ export default function MyProfileScreen({ navigation }: any) {
       });
 
       Alert.alert("Sucesso", "Perfil atualizado 🚀");
+
+      await loadUserData();
+
       setIsEditing(false);
+  
     } catch (error) {
       Alert.alert("Erro", "Não foi possível salvar as alterações.");
     } finally {
@@ -221,34 +232,52 @@ export default function MyProfileScreen({ navigation }: any) {
 
   return (
     <ImageBackground
-      source={require("../assets/map.png")}
-      style={styles.background}
-      imageStyle={styles.backgroundImage}
+      source={require("../assets/network-bg.png")}
+      style={[
+        styles.background,
+        {
+          width: "100%",
+          minHeight: "100%",
+        }, 
+      ]}
     >
       <View style={styles.overlay}>
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView 
+          style={[
+            styles.container,
+            {
+              paddingHorizontal: isMobile ? 20 : 40,
+              maxWidth: isDesktop ? 1200 : 900,
+              width: "100%",
+              alignSelf: "center",
+            },
+          ]}
+        >
           <ScrollView showsVerticalScrollIndicator={false}>
 
             {/* TOP BAR */}
-            <View style={styles.topBar}>
+            <View
+              style={[
+                styles.topBar,
+                {
+                  marginBottom: isMobile ? 24 : 34,
+                },
+              ]}
+            >
 
               <TouchableOpacity
-                onPress={() => navigation.goBack()}
+                onPress={() => {
+                  if (navigation.canGoBack()) {
+                    navigation.goBack();
+                  } else {
+                    navigation.navigate("Home");
+                  }
+                }}
               >
                 <Text style={styles.backText}>
                   ← Voltar
                 </Text>
               </TouchableOpacity>
-
-              {!isEditing && (
-                <TouchableOpacity style={styles.settingsButton}>
-                  <Ionicons
-                    name="settings-outline"
-                    size={26}
-                    color="#FFFFFF"
-                  />
-                </TouchableOpacity>
-              )}
 
             </View>
 
@@ -261,7 +290,14 @@ export default function MyProfileScreen({ navigation }: any) {
                   source={{
                     uri: "https://i.pravatar.cc/300?img=32",
                   }}
-                  style={styles.avatar}
+                  style={[
+                    styles.avatar,
+                    {
+                      width: isMobile ? 110 : 150,
+                      height: isMobile ? 110 : 150,
+                      borderRadius: isMobile ? 55 : 75,
+                    },
+                  ]}
                 />
 
                 {isEditing && (
@@ -284,12 +320,25 @@ export default function MyProfileScreen({ navigation }: any) {
 
               {!isEditing && (
                 <>
-                  <Text style={styles.profileName}>
+                  <Text 
+                    style={[
+                      styles.profileName,
+                      {
+                        fontSize: isMobile ? 22 : 34,
+                      }
+                    ]}
+                  >
                     {name}
                   </Text>
 
-                  <Text style={styles.profilePosition}>
-                    {position}
+                  <Text 
+                    style={[
+                      styles.profilePosition,
+                      { 
+                        fontSize: isMobile ? 16 : 20,
+                      }
+                    ]}
+                  >
                   </Text>
                 </>
               )}
@@ -298,7 +347,15 @@ export default function MyProfileScreen({ navigation }: any) {
 
             {/* STACKS VISUALIZAÇÃO */}
             {!isEditing && (
-              <View style={styles.stackContainer}>
+              <View
+                style={[
+                  styles.stackContainer,
+                  {
+                    maxWidth: isDesktop ? 900 : "100%",
+                    alignSelf: "center",
+                  },
+                ]}
+              >
                 {selectedStacks.map((stack) => (
                   <View key={stack} style={styles.techCard}>
 
@@ -321,7 +378,15 @@ export default function MyProfileScreen({ navigation }: any) {
               <>
 
                 {/* ABOUT */}
-                <View style={styles.infoCard}>
+                <View
+                  style={[
+                    styles.infoCard,
+                    {
+                      padding: isMobile ? 16 : 24,
+                      borderRadius: isMobile ? 20 : 28,
+                    },
+                  ]}
+                >
 
                   <View style={styles.cardContent}>
 
@@ -350,7 +415,15 @@ export default function MyProfileScreen({ navigation }: any) {
                 </View>
 
                 {/* OBJETIVO */}
-                <View style={styles.infoCard}>
+                <View
+                  style={[
+                    styles.infoCard,
+                    {   
+                      padding: isMobile ? 16 : 24,
+                      borderRadius: isMobile ? 20 : 28,
+                    },
+                  ]}
+                >
 
                   <View style={styles.cardContent}>
 
@@ -379,7 +452,15 @@ export default function MyProfileScreen({ navigation }: any) {
                 </View>
 
                 {/* BLE */}
-                <View style={styles.infoCard}>
+                <View
+                  style={[
+                    styles.infoCard,
+                    { 
+                      padding: isMobile ? 16 : 24,
+                      borderRadius: isMobile ? 20 : 28,
+                    },
+                  ]}
+                >
 
                   <View style={styles.cardContent}>
 
@@ -442,7 +523,15 @@ export default function MyProfileScreen({ navigation }: any) {
               <>
 
                 {/* NOME */}
-                <View style={styles.infoCard}>
+                <View
+                  style={[
+                    styles.infoCard,
+                    {   
+                      padding: isMobile ? 16 : 24,
+                      borderRadius: isMobile ? 20 : 28,
+                    },
+                  ]}
+                >
                   <Text style={styles.infoTitle}>
                     Nome
                   </Text>
@@ -455,7 +544,15 @@ export default function MyProfileScreen({ navigation }: any) {
                 </View>
 
                 {/* CARGO */}
-                <View style={styles.infoCard}>
+                <View
+                  style={[
+                    styles.infoCard,
+                    {   
+                      padding: isMobile ? 16 : 24,
+                      borderRadius: isMobile ? 20 : 28,
+                    },
+                  ]}
+                >
                   <Text style={styles.infoTitle}>
                     Cargo
                   </Text>
@@ -468,7 +565,15 @@ export default function MyProfileScreen({ navigation }: any) {
                 </View>
 
                 {/* STACKS */}
-                <View style={styles.infoCard}>
+                <View
+                  style={[
+                    styles.infoCard,
+                    {   
+                      padding: isMobile ? 16 : 24,
+                      borderRadius: isMobile ? 20 : 28,
+                    },
+                  ]}
+                >
 
                   <Text style={styles.infoTitle}>
                     Stacks
@@ -561,7 +666,15 @@ export default function MyProfileScreen({ navigation }: any) {
                 </View>
 
                 {/* BIO */}
-                <View style={styles.infoCard}>
+                <View
+                  style={[
+                    styles.infoCard,
+                    {   
+                      padding: isMobile ? 16 : 24,
+                      borderRadius: isMobile ? 20 : 28,
+                    },
+                  ]}
+                >
 
                   <Text style={styles.infoTitle}>
                     Bio
@@ -579,7 +692,15 @@ export default function MyProfileScreen({ navigation }: any) {
                 </View>
 
                 {/* OBJETIVO */}
-                <View style={styles.infoCard}>
+                <View
+                  style={[
+                    styles.infoCard,
+                    {   
+                      padding: isMobile ? 16 : 24,
+                      borderRadius: isMobile ? 20 : 28,
+                    },
+                  ]}
+                >
 
                   <Text style={styles.infoTitle}>
                     Objetivo
@@ -660,14 +781,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 24,
-  },
-
-  settingsButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    justifyContent: "center",
-    alignItems: "center",
   },
 
   backText: {

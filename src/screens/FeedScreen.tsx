@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-
 import {
   View,
   FlatList,
@@ -7,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   useWindowDimensions,
-  SafeAreaView,
   Modal,
   Text,
   Alert,
@@ -15,6 +13,8 @@ import {
   TextInput,
   Animated,
 } from "react-native";
+
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Ionicons } from "@expo/vector-icons";
 
@@ -723,17 +723,13 @@ const styles = StyleSheet.create({
 
   header: {
     flexDirection: "row",
-
     justifyContent: "space-between",
-
     alignItems: "center",
-
-    paddingVertical: 14,
-
+    paddingHorizontal: 18,
+    paddingTop: 8,
+    paddingBottom: 14,
     borderBottomWidth: 0.5,
-
-    borderBottomColor:
-      "rgba(255,255,255,0.1)",
+    borderBottomColor: "rgba(255,255,255,0.1)",
   },
 
   postButton: {

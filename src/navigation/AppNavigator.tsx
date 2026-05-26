@@ -6,6 +6,7 @@ import HomeScreen from '../screens/HomeScreen';
 import ConnectionScreen from '../screens/ConnectionScreen';
 import MyProfileScreen from '../screens/MyProfileScreen';
 import FeedScreen from '../screens/FeedScreen';
+import LoadingScreen from "../screens/LoadingScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -13,11 +14,17 @@ export default function AppNavigator() {
   return (
     <Stack.Navigator
       id="Root"
+      initialRouteName="Loading"
       screenOptions={{
         headerShown: false,
         animation: 'fade',
       }}
     >
+    
+      <Stack.Screen
+        name="Loading"
+        component={LoadingScreen}
+      />
 
       <Stack.Screen
         name="Login"
