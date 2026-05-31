@@ -205,16 +205,6 @@ npx expo install --fix
 
 ---
 
-## 👩‍💻 Integrantes
-
-| Nome | Papel |
-|---|---|
-| Joice Barbosa Santos | React Native Developer |
-| Adriel Pereira | Backend Java + Spring Boot |
-| Luiz Henrique | Node.js + DevOps |
-
----
-
 ## 🚧 Status
 
 ### ✅ Concluído — Frontend
