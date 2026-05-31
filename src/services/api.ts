@@ -7,13 +7,14 @@ import { Platform } from 'react-native';
 
 const baseURL = Platform.OS === 'web'
   ? 'http://localhost:8080/api'
-  : 'http://192.168.15.200:8080/api';
+  : 'https://handmade-mardi-obstruct.ngrok-free.dev/api';
 
 export const api = axios.create({
   baseURL,
-  timeout: 8000, // 8 segundos — evita o botão travado para sempre
+  timeout: 8000,
   headers: {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
   },
 });
 

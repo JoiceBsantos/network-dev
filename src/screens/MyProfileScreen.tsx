@@ -46,16 +46,7 @@ function showAlert(title: string, message: string) {
   }
 }
 
-// ─── Mock posts ───────────────────────────────────────────────────────────────
 
-const MY_POSTS: Post[] = [
-  { id: "1", url: "https://picsum.photos/id/1/400/400",  description: "Finalizando a Home responsiva 🚀", likes: 24 },
-  { id: "2", url: "https://picsum.photos/id/20/400/400", description: "Deploy concluído com sucesso 🔥",   likes: 17 },
-  { id: "3", url: "https://picsum.photos/id/30/400/400", description: "Novo protótipo no Figma ✨",        likes: 42 },
-  { id: "4", url: "https://picsum.photos/id/40/400/400", description: "Code review aprovado 👊",           likes: 11 },
-  { id: "5", url: "https://picsum.photos/id/50/400/400", description: "Sprint finalizada 🎯",              likes: 33 },
-  { id: "6", url: "https://picsum.photos/id/60/400/400", description: "Apresentação do projeto 💡",        likes: 28 },
-];
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
@@ -66,11 +57,13 @@ export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
   const [userId, setUserId]             = useState<string | null>(null);
   const [name, setName]                 = useState("Joice Barbosa");
   const [position, setPosition]         = useState("Desenvolvedora Mobile");
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const [objective, setObjective]       = useState("Buscando networking e oportunidades em mobile e IoT.");
   const [bio, setBio]                   = useState("Apaixonada por tecnologia, desenvolvimento mobile e soluções IoT.");
   const [selectedStacks, setSelectedStacks] = useState<string[]>(["React Native", "TypeScript", "Java"]);
   const [selectedPost, setSelectedPost]   = useState<Post | null>(null);
-  const [myPosts, setMyPosts]             = useState<Post[]>(MY_POSTS);
+  const [myPosts, setMyPosts]             = useState<Post[]>([]);
+  const [loadingPosts, setLoadingPosts]   = useState(false);
   const [isEditingPost, setIsEditingPost] = useState(false);
   const [editDescription, setEditDescription] = useState("");
 
@@ -117,6 +110,7 @@ export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
 
   useEffect(() => {
     loadUserData();
+    loadUserPosts();
   }, []);
 
   async function loadUserData() {
@@ -128,11 +122,39 @@ export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
       setName(response.data.name);
       setPosition(response.data.position || "");
       setBio(response.data.bio || "");
+      setProfileImageUrl(response.data.profileImageUrl || null);
       if (response.data.stack) {
         setSelectedStacks(response.data.stack.split(", "));
       }
     } catch (error) {
       console.log("Erro ao carregar perfil", error);
+    }
+  }
+
+  // ─── Posts do usuário ────────────────────────────────────────────────────────
+
+  async function loadUserPosts() {
+    setLoadingPosts(true);
+    try {
+      const id = await getStoredUserId();
+      const response = await api.get("/posts", {
+        params: { page: 0, size: 50, sort: "createdAt,desc" },
+      });
+      const allPosts = response.data.content || [];
+      // Filtra só os posts do usuário logado
+      const userPosts = allPosts
+        .filter((p: any) => p.userId === Number(id))
+        .map((p: any) => ({
+          id:          p.id.toString(),
+          url:         p.imageUrl || "https://picsum.photos/id/1/400/400",
+          description: p.description || "",
+          likes:       0,
+        }));
+      setMyPosts(userPosts);
+    } catch (error) {
+      console.log("Erro ao carregar posts do usuário:", error);
+    } finally {
+      setLoadingPosts(false);
     }
   }
 
@@ -279,7 +301,7 @@ export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
             <View style={[styles.avatarContainer, { marginTop: isMobile ? 16 : 24 }]}>
               <View>
                 <Image
-                  source={require("../assets/me.png")}
+                  source={profileImageUrl ? { uri: profileImageUrl } : require("../assets/me.png")}
                   style={[
                     styles.avatar,
                     {

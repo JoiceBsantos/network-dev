@@ -12,24 +12,17 @@ import {
   ActivityIndicator,
   TextInput,
   Animated,
+  Platform,
 } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-
 import { Ionicons } from "@expo/vector-icons";
-
 import { LinearGradient } from "expo-linear-gradient";
-
 import * as ImagePicker from "expo-image-picker";
-
 import { api } from "../services/api";
-
 import { getStoredUserId } from "../services/auth";
-
 import { useResponsive } from "../utils/responsive";
-
 import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
-
 import { MainTabParamList } from "../navigation/AppNavigator";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -37,6 +30,14 @@ import { MainTabParamList } from "../navigation/AppNavigator";
 type FeedScreenProps = {
   navigation: BottomTabNavigationProp<MainTabParamList, "Feed">;
 };
+
+interface ApiPost {
+  id:          number;
+  userId:      number;
+  description: string;
+  imageUrl:    string | null;
+  createdAt:   string;
+}
 
 interface Post {
   id:          string;
@@ -49,40 +50,15 @@ interface Post {
   liked:       boolean;
 }
 
-// ─── Dados mock ───────────────────────────────────────────────────────────────
+// ─── Helper ───────────────────────────────────────────────────────────────────
 
-const MOCK_PHOTOS: Post[] = [
-  {
-    id: "1",
-    user: "Joice Barbosa",
-    role: "React Native Developer",
-    avatar: "https://i.pravatar.cc/150?img=32",
-    url: "https://picsum.photos/id/1/800/800",
-    description: "Finalizando a Home responsiva 🚀",
-    likes: 24,
-    liked: false,
-  },
-  {
-    id: "2",
-    user: "Carlos Lima",
-    role: "Backend Java",
-    avatar: "https://i.pravatar.cc/150?img=12",
-    url: "https://picsum.photos/id/20/800/800",
-    description: "Deploy concluído com sucesso 🔥",
-    likes: 17,
-    liked: false,
-  },
-  {
-    id: "3",
-    user: "Marina Souza",
-    role: "UI/UX Designer",
-    avatar: "https://i.pravatar.cc/150?img=45",
-    url: "https://picsum.photos/id/30/800/800",
-    description: "Novo protótipo no Figma ✨",
-    likes: 42,
-    liked: false,
-  },
-];
+function showAlert(title: string, message: string) {
+  if (Platform.OS === "web") {
+    (globalThis as any).alert(`${title}\n\n${message}`);
+  } else {
+    Alert.alert(title, message);
+  }
+}
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
@@ -90,81 +66,185 @@ export default function FeedScreen({ navigation }: FeedScreenProps) {
   const { width } = useWindowDimensions();
   const { isMobile, isTablet, isDesktop } = useResponsive();
 
-  const [posts, setPosts]                       = useState<Post[]>([]);
-  const [loadingMore, setLoadingMore]           = useState(false);
-  const [selectedImage, setSelectedImage]       = useState<string | null>(null);
-  const [selectedPostId, setSelectedPostId]     = useState<string | null>(null);
+  const [posts, setPosts]                         = useState<Post[]>([]);
+  const [loading, setLoading]                     = useState(true);
+  const [loadingMore, setLoadingMore]             = useState(false);
+  const [page, setPage]                           = useState(0);
+  const [hasMore, setHasMore]                     = useState(true);
+  const [selectedImage, setSelectedImage]         = useState<string | null>(null);
+  const [selectedPostId, setSelectedPostId]       = useState<string | null>(null);
   const [createPostVisible, setCreatePostVisible] = useState(false);
-  const [postText, setPostText]                 = useState("");
-  const [newImage, setNewImage]                 = useState<string | null>(null);
+  const [postText, setPostText]                   = useState("");
+  const [newImage, setNewImage]                   = useState<string | null>(null);
+  const [publishing, setPublishing]               = useState(false);
 
   const likeAnimations = useRef<Record<string, Animated.Value>>({}).current;
 
-  // ── Inicializa posts ───────────────────────────────────────────────────────
+  // ── Carrega posts da API ───────────────────────────────────────────────────
 
   useEffect(() => {
-    const preparedPosts = MOCK_PHOTOS.map((post) => {
-      likeAnimations[post.id] = new Animated.Value(1);
-      return post;
-    });
-    setPosts(preparedPosts);
+    loadFeed(0, true);
   }, []);
+
+  async function loadFeed(pageNum: number, reset: boolean = false) {
+    try {
+      if (reset) setLoading(true);
+      else setLoadingMore(true);
+
+      const response = await api.get("/posts", {
+        params: { page: pageNum, size: 10, sort: "createdAt,desc" },
+      });
+
+      const apiPosts: ApiPost[] = response.data.content || [];
+      const isLast: boolean     = response.data.last ?? true;
+
+      // Busca dados dos usuários dos posts
+      const userIds = [...new Set(apiPosts.map((p) => p.userId))];
+      const userMap: Record<number, { name: string; avatar: string; role: string }> = {};
+
+      await Promise.all(
+        userIds.map(async (uid) => {
+          try {
+            const userRes = await api.get(`/users/${uid}`);
+            userMap[uid] = {
+              name:   userRes.data.name   || "Usuário",
+              avatar: userRes.data.profileImageUrl || "https://i.pravatar.cc/150?img=32",
+              role:   userRes.data.position || userRes.data.stack || "Dev",
+            };
+          } catch {
+            userMap[uid] = { name: "Usuário", avatar: "https://i.pravatar.cc/150?img=32", role: "Dev" };
+          }
+        })
+      );
+
+      const mapped: Post[] = apiPosts.map((p) => {
+        const id   = p.id.toString();
+        const user = userMap[p.userId] || { name: "Usuário", avatar: "https://i.pravatar.cc/150?img=32", role: "Dev" };
+        if (!likeAnimations[id]) {
+          likeAnimations[id] = new Animated.Value(1);
+        }
+        return {
+          id,
+          user:        user.name,
+          role:        user.role,
+          avatar:      user.avatar,
+          url:         p.imageUrl || "https://picsum.photos/id/1/800/800",
+          description: p.description || "",
+          likes:       0,
+          liked:       false,
+        };
+      });
+
+      setPosts((prev) => reset ? mapped : [...prev, ...mapped]);
+      setHasMore(!isLast);
+      setPage(pageNum);
+    } catch (error) {
+      console.log("❌ Erro ao carregar feed:", error);
+      // Fallback para mock se API falhar
+      if (reset) loadMock();
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }
+
+  function loadMock() {
+    const mock: Post[] = [
+      { id: "m1", user: "Joice Barbosa", role: "React Native Developer", avatar: "https://i.pravatar.cc/150?img=32", url: "https://picsum.photos/id/1/800/800",  description: "Finalizando a Home responsiva 🚀", likes: 24, liked: false },
+      { id: "m2", user: "Adriel Pereira", role: "Backend Java",          avatar: "https://i.pravatar.cc/150?img=12", url: "https://picsum.photos/id/20/800/800", description: "Deploy concluído com sucesso 🔥",   likes: 17, liked: false },
+      { id: "m3", user: "Luiz Henrique", role: "Node.js + DevOps",       avatar: "https://i.pravatar.cc/150?img=53", url: "https://picsum.photos/id/30/800/800", description: "Novo protótipo no Figma ✨",        likes: 42, liked: false },
+    ];
+    mock.forEach((p) => { likeAnimations[p.id] = new Animated.Value(1); });
+    setPosts(mock);
+  }
 
   // ── Layout responsivo ──────────────────────────────────────────────────────
 
   const numColumns = isDesktop ? 3 : isTablet ? 2 : 1;
-
-  const imageSize = isDesktop ? 360 : isTablet ? width * 0.42 : width - 32;
+  const imageSize  = isDesktop ? 360 : isTablet ? width * 0.42 : width - 32;
 
   // ── Adicionar foto ─────────────────────────────────────────────────────────
 
   const handleAddPhoto = async () => {
     const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
     if (!granted) {
-      Alert.alert("Permissão necessária", "Você precisa permitir o acesso à galeria.");
+      showAlert("Permissão necessária", "Você precisa permitir o acesso à galeria.");
       return;
     }
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       quality: 0.7,
     });
-
-    if (!result.canceled) {
-      setNewImage(result.assets[0].uri);
-    }
+    if (!result.canceled) setNewImage(result.assets[0].uri);
   };
 
   // ── Criar post ─────────────────────────────────────────────────────────────
 
-  const handleCreatePost = () => {
+  const handleCreatePost = async () => {
     if (!postText && !newImage) {
-      Alert.alert("Erro", "Adicione um texto ou imagem.");
+      showAlert("Erro", "Adicione um texto ou imagem.");
       return;
     }
 
-    const newPost: Post = {
-      id:          Date.now().toString(),
-      user:        "Joice Barbosa",
-      role:        "React Native Developer",
-      avatar:      "https://i.pravatar.cc/150?img=32",
-      url:         newImage || "https://picsum.photos/800/800",
-      description: postText,
-      likes:       0,
-      liked:       false,
-    };
+    setPublishing(true);
 
-    likeAnimations[newPost.id] = new Animated.Value(1);
+    try {
+      const userId = await getStoredUserId();
 
-    setPosts((prev) => [newPost, ...prev]);
-    setPostText("");
-    setNewImage(null);
-    setCreatePostVisible(false);
+      if (newImage) {
+        // Post com imagem
+        const formData = new FormData();
+        formData.append("userId", userId || "1");
+        formData.append("description", postText);
+        formData.append("image", {
+          uri:  newImage,
+          type: "image/jpeg",
+          name: "post.jpg",
+        } as any);
+
+        await api.post("/posts/create-with-image", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      } else {
+        // Post só com texto
+        await api.post("/posts", {
+          userId:      Number(userId),
+          description: postText,
+          imageUrl:    null,
+        });
+      }
+
+      setPostText("");
+      setNewImage(null);
+      setCreatePostVisible(false);
+      // Recarrega o feed
+      await loadFeed(0, true);
+      showAlert("Sucesso", "Publicação criada! 🚀");
+    } catch (error) {
+      console.log("❌ Erro ao criar post:", error);
+      // Fallback local se API falhar
+      const newPost: Post = {
+        id:          Date.now().toString(),
+        user:        "Você",
+        role:        "Dev",
+        avatar:      "https://i.pravatar.cc/150?img=32",
+        url:         newImage || "https://picsum.photos/800/800",
+        description: postText,
+        likes:       0,
+        liked:       false,
+      };
+      likeAnimations[newPost.id] = new Animated.Value(1);
+      setPosts((prev) => [newPost, ...prev]);
+      setPostText("");
+      setNewImage(null);
+      setCreatePostVisible(false);
+    } finally {
+      setPublishing(false);
+    }
   };
 
-  // ── Like ───────────────────────────────────────────────────────────────────
+  // ── Like (local) ───────────────────────────────────────────────────────────
 
   const handleLike = (id: string) => {
     Animated.sequence([
@@ -184,35 +264,32 @@ export default function FeedScreen({ navigation }: FeedScreenProps) {
   // ── Infinite scroll ────────────────────────────────────────────────────────
 
   const handleInfiniteScroll = () => {
-    if (loadingMore) return;
-    setLoadingMore(true);
-
-    setTimeout(() => {
-      const morePosts = MOCK_PHOTOS.map((post, index) => {
-        const newId = `${post.id}-${Date.now()}-${index}`;
-        likeAnimations[newId] = new Animated.Value(1);
-        return { ...post, id: newId };
-      });
-
-      setPosts((prev) => [...prev, ...morePosts]);
-      setLoadingMore(false);
-    }, 1500);
+    if (loadingMore || !hasMore) return;
+    loadFeed(page + 1);
   };
 
   // ── Deletar post ───────────────────────────────────────────────────────────
 
   const handleDelete = () => {
-    Alert.alert("Apagar Foto", "Deseja realmente remover esta foto?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Apagar",
-        style: "destructive",
-        onPress: () => {
-          setPosts((prev) => prev.filter((p) => p.id !== selectedPostId));
-          setSelectedImage(null);
+    if (Platform.OS === "web") {
+      const confirm = (globalThis as any).confirm("Deseja realmente remover esta foto?");
+      if (confirm) {
+        setPosts((prev) => prev.filter((p) => p.id !== selectedPostId));
+        setSelectedImage(null);
+      }
+    } else {
+      Alert.alert("Apagar Foto", "Deseja realmente remover esta foto?", [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Apagar",
+          style: "destructive",
+          onPress: () => {
+            setPosts((prev) => prev.filter((p) => p.id !== selectedPostId));
+            setSelectedImage(null);
+          },
         },
-      },
-    ]);
+      ]);
+    }
   };
 
   // ─── Render ───────────────────────────────────────────────────────────────
@@ -222,24 +299,19 @@ export default function FeedScreen({ navigation }: FeedScreenProps) {
       <SafeAreaView style={styles.safeArea}>
 
         {/* ── HEADER ────────────────────────────────────────────────────── */}
-
         <View style={[styles.header, { paddingHorizontal: isMobile ? 18 : 28 }]}>
-          {/* Logo centralizada — sem botão voltar (agora é uma aba) */}
           <Image
             source={require("../assets/logo.png")}
             style={{ width: isMobile ? 40 : 48, height: isMobile ? 40 : 48, resizeMode: "contain" }}
           />
-
           <Text style={styles.headerTitle}>Feed</Text>
-
           <TouchableOpacity style={styles.postButton} onPress={() => setCreatePostVisible(true)}>
             <Ionicons name="add-circle" size={34} color="#3B82F6" />
           </TouchableOpacity>
         </View>
 
         {/* ── FEED ──────────────────────────────────────────────────────── */}
-
-        {posts.length === 0 ? (
+        {loading ? (
           <View style={styles.skeletonContainer}>
             {[1, 2, 3].map((item) => (
               <View key={item} style={styles.skeletonCard}>
@@ -255,15 +327,20 @@ export default function FeedScreen({ navigation }: FeedScreenProps) {
             numColumns={numColumns}
             key={numColumns}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{
-              padding: isMobile ? 16 : 22,
-              paddingBottom: 100, // espaço para a tab bar
-            }}
-            columnWrapperStyle={
-              !isMobile ? { justifyContent: "space-between", marginBottom: 22 } : undefined
-            }
+            contentContainerStyle={{ padding: isMobile ? 16 : 22, paddingBottom: 100 }}
+            columnWrapperStyle={!isMobile ? { justifyContent: "space-between", marginBottom: 22 } : undefined}
             onEndReached={handleInfiniteScroll}
             onEndReachedThreshold={0.4}
+            onRefresh={() => loadFeed(0, true)}
+            refreshing={loading}
+            ListEmptyComponent={
+              <View style={{ alignItems: "center", marginTop: 60 }}>
+                <Ionicons name="images-outline" size={48} color="#4A5568" />
+                <Text style={{ color: "#4A5568", marginTop: 12, fontSize: 16 }}>
+                  Nenhuma publicação ainda
+                </Text>
+              </View>
+            }
             ListFooterComponent={
               loadingMore
                 ? <ActivityIndicator size="large" color="#3B82F6" style={{ marginVertical: 20 }} />
@@ -326,7 +403,6 @@ export default function FeedScreen({ navigation }: FeedScreenProps) {
         )}
 
         {/* ── MODAL CRIAR POST ──────────────────────────────────────────── */}
-
         <Modal visible={createPostVisible} animationType="slide" transparent>
           <View style={styles.modalOverlay}>
             <View style={[styles.createPostModal, { width: isMobile ? "100%" : 600 }]}>
@@ -351,8 +427,15 @@ export default function FeedScreen({ navigation }: FeedScreenProps) {
                   <Text style={styles.secondaryText}>Imagem</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.publishButton} onPress={handleCreatePost}>
-                  <Text style={styles.publishText}>Publicar</Text>
+                <TouchableOpacity
+                  style={styles.publishButton}
+                  onPress={handleCreatePost}
+                  disabled={publishing}
+                >
+                  {publishing
+                    ? <ActivityIndicator color="#fff" />
+                    : <Text style={styles.publishText}>Publicar</Text>
+                  }
                 </TouchableOpacity>
               </View>
 
@@ -364,7 +447,6 @@ export default function FeedScreen({ navigation }: FeedScreenProps) {
         </Modal>
 
         {/* ── MODAL FULLSCREEN ──────────────────────────────────────────── */}
-
         <Modal visible={!!selectedImage} transparent animationType="fade">
           <View style={styles.modalBackground}>
             <TouchableOpacity style={styles.closeModal} onPress={() => setSelectedImage(null)}>
@@ -392,12 +474,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+
   safeArea: {
     flex: 1,
     alignSelf: "center",
     width: "100%",
     maxWidth: 1400,
   },
+
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -408,14 +492,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: "rgba(255,255,255,0.1)",
   },
+
   headerTitle: {
     color: "#FFFFFF",
     fontSize: 18,
     fontWeight: "700",
   },
+
   postButton: {
     padding: 5,
   },
+
   postCard: {
     backgroundColor: "rgba(255,255,255,0.04)",
     borderRadius: 22,
@@ -424,32 +511,38 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.06)",
   },
+
   postHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     padding: 14,
   },
+
   userInfo: {
     flexDirection: "row",
     alignItems: "center",
   },
+
   avatar: {
     width: 46,
     height: 46,
     borderRadius: 999,
     marginRight: 12,
   },
+
   userName: {
     color: "#fff",
     fontSize: 15,
     fontWeight: "700",
   },
+
   userRole: {
     color: "#8A94A6",
     fontSize: 13,
     marginTop: 2,
   },
+
   description: {
     color: "#fff",
     fontSize: 15,
@@ -457,9 +550,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     marginBottom: 12,
   },
+
   postImage: {
     width: "100%",
   },
+
   actions: {
     flexDirection: "row",
     alignItems: "center",
@@ -467,25 +562,30 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 20,
   },
+
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
   },
+
   actionText: {
     color: "#fff",
     marginLeft: 6,
     fontWeight: "600",
   },
+
   modalBackground: {
     flex: 1,
     backgroundColor: "black",
     justifyContent: "center",
     alignItems: "center",
   },
+
   fullImage: {
     width: "100%",
     height: "80%",
   },
+
   closeModal: {
     position: "absolute",
     top: 50,
@@ -495,6 +595,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     borderRadius: 25,
   },
+
   deleteButton: {
     position: "absolute",
     bottom: 50,
@@ -503,6 +604,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.1)",
     borderRadius: 30,
   },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.6)",
@@ -510,17 +612,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 20,
   },
+
   createPostModal: {
     backgroundColor: "#081228",
     borderRadius: 26,
     padding: 22,
   },
+
   modalTitle: {
     color: "#fff",
     fontSize: 22,
     fontWeight: "800",
     marginBottom: 20,
   },
+
   input: {
     backgroundColor: "rgba(255,255,255,0.05)",
     borderRadius: 18,
@@ -530,17 +635,20 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
     fontSize: 16,
   },
+
   previewImage: {
     width: "100%",
     height: 220,
     borderRadius: 18,
     marginTop: 18,
   },
+
   modalActions: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 20,
   },
+
   secondaryButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -549,36 +657,45 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 16,
   },
+
   secondaryText: {
     color: "#fff",
     fontWeight: "700",
     marginLeft: 8,
   },
+
   publishButton: {
     backgroundColor: "#2563EB",
     paddingHorizontal: 26,
     paddingVertical: 14,
     borderRadius: 16,
+    minWidth: 100,
+    alignItems: "center",
   },
+
   publishText: {
     color: "#fff",
     fontWeight: "800",
     fontSize: 15,
   },
+
   closeButton: {
     position: "absolute",
     top: 18,
     right: 18,
   },
+
   skeletonContainer: {
     padding: 16,
   },
+
   skeletonCard: {
     backgroundColor: "rgba(255,255,255,0.04)",
     borderRadius: 22,
     marginBottom: 18,
     overflow: "hidden",
   },
+
   skeletonAvatar: {
     width: 46,
     height: 46,
@@ -586,6 +703,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.08)",
     margin: 16,
   },
+
   skeletonImage: {
     width: "100%",
     height: 300,
