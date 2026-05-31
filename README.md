@@ -1,338 +1,238 @@
-# 🚀 Network Dev
+# 📡 Network Dev
 
-Aplicativo mobile híbrido desenvolvido com React Native + Expo + TypeScript, com foco em networking entre desenvolvedores através de descoberta de perfis próximos, integração social e experiência moderna de UI/UX.
-
----
-
-# 📱 Sobre o Projeto
-
-O **Network Dev** foi criado com a proposta de conectar estudantes, desenvolvedores e profissionais da área de tecnologia através de uma plataforma mobile moderna, intuitiva e escalável.
-
-O projeto possui:
-
-- autenticação com Firebase;
-- navegação entre telas;
-- radar interativo;
-- detecção visual de desenvolvedores;
-- interface premium responsiva;
-- estrutura preparada para integração com backend Java Spring Boot.
+Aplicativo mobile híbrido desenvolvido com **React Native + Expo + TypeScript**, com foco em networking entre desenvolvedores através de descoberta de perfis via **Bluetooth Low Energy (BLE)** com sensores **ESP32**, navegação moderna por abas e experiência premium de UI/UX.
 
 ---
 
-# ✨ Funcionalidades Atuais
+## 📱 Sobre o Projeto
 
-## 🔐 Autenticação Firebase
+O **Network Dev** conecta estudantes e profissionais de tecnologia em tempo real. Ao ativar o Bluetooth, o app detecta dispositivos ESP32 próximos e apresenta o perfil do desenvolvedor correspondente, permitindo enviar e gerenciar conexões profissionais.
 
-- Cadastro de usuários
-- Login com email e senha
+---
+
+## ✨ Funcionalidades
+
+### 🔐 Autenticação
+- Login com email e senha com validação inline
+- Mostrar/esconder senha (👁️)
+- Alertas nativos no mobile e `window.alert` na web
+- Cadastro de novo perfil com seleção de stacks
+- Persistência de sessão via `AsyncStorage`
 - Logout funcional
-- Persistência de autenticação
-- Integração com Firebase Authentication
+
+### 🏠 Home — Radar BLE
+- Radar animado com beam rotacionando
+- Busca de desenvolvedores via BLE / ESP32
+- Cards com nome, stack, % de compatibilidade e distância
+- Fotos reais dos integrantes do projeto
+- Sino de notificações com badge (mobile: fixo no canto superior direito)
+- Navegação para tela de conexão passando dados do dev selecionado
+
+### 🤝 Conexão
+- Tela com fotos dinâmicas do usuário e do dev detectado
+- Porcentagem de compatibilidade
+- Informações de distância e sinal BLE
+- Animação de handshake ao enviar conexão
+- Modal de sucesso com navegação de retorno
+
+### 👥 Conexões
+- Lista de conexões aceitas
+- Solicitações enviadas (aguardando resposta)
+- Solicitações recebidas com botões **Aceitar ✅** e **Recusar ❌**
+- Alertas nativos ao aceitar/recusar (web e mobile)
+
+### 📸 Feed
+- Grid de posts com foto, descrição e curtidas
+- Curtir posts com animação
+- Criar nova publicação com texto e imagem da galeria
+- Modal de visualização fullscreen
+- Infinite scroll com carregamento simulado
+
+### 👤 Perfil
+- Foto de perfil, nome e cargo
+- Stacks com ícones
+- **Stats:** número de conexões e posts (clicável)
+- Cards: Sobre mim, Objetivo, Status BLE
+- Edição de nome, cargo, bio, objetivo e stacks
+- **Grid de publicações** próprias (3 colunas)
+- Ao tocar num post: modal com **Editar ✏️** e **Excluir 🗑️**
+- Edição inline da descrição do post
+
+### 🎨 UI/UX
+- Dark mode com gradiente azul profundo
+- Layout totalmente responsivo (mobile, tablet, desktop)
+- Bottom Tab Navigator com safe area dinâmica
+- Animações com `Animated API` e `Lottie`
+- Compatível com Android, iOS e Web
 
 ---
 
-## 👤 Perfil do Usuário
+## 🛠 Tecnologias
 
-- Tela de criação de perfil
-- Nome profissional
-- Stack tecnológica
-- Cargo/Função
-- Bio
-- Foto de perfil
-- Estrutura pronta para API backend
-
----
-
-## 📡 Radar Inteligente
-
-- Radar animado
-- Beam rotacionando
-- Desenvolvedores detectados visualmente
-- Interface inspirada em apps premium
+| Categoria | Tecnologia |
+|---|---|
+| Mobile | React Native + Expo |
+| Linguagem | TypeScript |
+| Navegação | React Navigation v7 (Stack + Bottom Tabs) |
+| HTTP | Axios |
+| Armazenamento | AsyncStorage |
+| Animações | Animated API + Lottie React Native |
+| Ícones | Expo Vector Icons (Ionicons) |
+| Imagens | Expo Image Picker |
+| Gradiente | Expo Linear Gradient |
+| Safe Area | React Native Safe Area Context |
+| Hardware | ESP32 via BLE |
+| Versionamento | Git + GitHub |
 
 ---
 
-## 🤝 Networking
+## 📂 Estrutura do Projeto
 
-- Cards de desenvolvedores
-- Compatibilidade por porcentagem
-- Status online
-- Navegação para tela de conexão
-
----
-
-## 🎨 UI/UX
-
-- Dark mode
-- Interface futurista
-- Glassmorphism
-- Layout responsivo
-- Compatível com:
-  - Android
-  - Expo Go
-  - Web
-
----
-
-# 🛠 Tecnologias Utilizadas
-
-## 📱 Mobile
-
-- React Native
-- Expo
-
-## 💻 Linguagem
-
-- TypeScript
-
-## 🔥 Firebase
-
-- Firebase Authentication
-- Firebase App
-
-## 🧭 Navegação
-
-- React Navigation
-
-## 🎨 Interface
-
-- React Native StyleSheet
-- Expo Vector Icons
-- Animated API
-
-## 🔄 Versionamento
-
-- Git
-- GitHub
-
----
-
-# 📂 Estrutura do Projeto
-
-```bash
-mobile/
-│
-├── assets/
+```
+network-dev/
 │
 ├── src/
-│   │
 │   ├── assets/
+│   │   ├── adriel.png
+│   │   ├── joice.png
+│   │   ├── luiz.png
+│   │   ├── me.png
 │   │   ├── logo.png
-│   │   └── map.png
+│   │   ├── network-bg.png
+│   │   ├── handshake.json
+│   │   └── stacks/          # ícones das tecnologias
 │   │
-│   ├── components/
+│   ├── navigation/
+│   │   └── AppNavigator.tsx  # Stack + Bottom Tabs
+│   │
+│   ├── screens/
+│   │   ├── LoadingScreen.tsx
+│   │   ├── LoginScreen.tsx
+│   │   ├── CreateProfileScreen.tsx
+│   │   ├── HomeScreen.tsx
+│   │   ├── FeedScreen.tsx
+│   │   ├── ConnectionScreen.tsx
+│   │   ├── ConnectionsScreen.tsx
+│   │   └── MyProfileScreen.tsx
+│   │
+│   ├── services/
+│   │   ├── api.ts            # Axios + interceptors
+│   │   ├── auth.ts           # Login, register, logout
+│   │   └── userService.ts
 │   │
 │   ├── config/
 │   │   └── firebase.ts
 │   │
-│   ├── navigation/
-│   │   └── AppNavigator.tsx
-│   │
-│   ├── screens/
-│   │   ├── LoginScreen.tsx
-│   │   ├── HomeScreen.tsx
-│   │   ├── CreateProfileScreen.tsx
-│   │   ├── ConnectionScreen.tsx
-│   │   └── MyProfileScreen.tsx
-│   │
-│   ├── services/
-│   │   ├── api.ts
-│   │   ├── auth.ts
-│   │   └── userService.ts
-│   │
-│   └── styles/
+│   └── utils/
+│       └── responsive.ts     # Hook de responsividade
 │
-├── .gitignore
-├── app.json
 ├── App.tsx
-├── babel.config.js
-├── index.js
+├── app.json
 ├── package.json
-├── package-lock.json
-├── tsconfig.json
 └── README.md
 ```
 
 ---
 
-# 🔥 Configuração Firebase
+## ⚙️ Configuração da API
 
-O projeto utiliza Firebase Authentication.
-
-## 📌 Criar arquivo Firebase
-
-Dentro de:
-
-```bash
-src/config/
-```
-
-crie:
-
-```bash
-firebase.ts
-```
-
----
-
-## 📄 Estrutura do firebase.ts
+O arquivo `src/services/api.ts` usa o IP da máquina para o celular e `localhost` para a web:
 
 ```ts
-import { initializeApp } from 'firebase/app';
+const baseURL = Platform.OS === 'web'
+  ? 'http://localhost:8080/api'
+  : 'http://SEU_IP:8080/api'; // substitua pelo IPv4 da sua máquina
+```
 
-const firebaseConfig = {
-  apiKey: 'SUA_API_KEY',
-  authDomain: 'SEU_AUTH_DOMAIN',
-  projectId: 'SEU_PROJECT_ID',
-  storageBucket: 'SEU_STORAGE_BUCKET',
-  messagingSenderId: 'SEU_MESSAGING_SENDER_ID',
-  appId: 'SEU_APP_ID',
-};
+Para descobrir o IP rode no terminal:
+```bash
+# Windows
+ipconfig
 
-export const app = initializeApp(firebaseConfig);
+# Mac/Linux
+ifconfig
 ```
 
 ---
 
-# 🚀 Como Clonar o Projeto
+## 🚀 Como Rodar
 
-## 📥 Clonar Repositório
-
+### 1. Clonar o repositório
 ```bash
 git clone https://github.com/JoiceBsantos/network-dev.git
+cd network-dev
 ```
 
----
-
-# 📂 Entrar na Pasta
-
-```bash
-cd network-dev/mobile
-```
-
----
-
-# 📦 Instalar Dependências
-
+### 2. Instalar dependências
 ```bash
 npm install
 ```
 
----
-
-# ▶ Executar Projeto
-
-## ✅ Rede Local
-
+### 3. Iniciar o projeto
 ```bash
 npx expo start
 ```
 
-ou
+### 4. Rodar no celular
+- Instale o **Expo Go** no celular
+- Conecte celular e computador na mesma rede Wi-Fi
+- Escaneie o QR Code exibido no terminal
 
+### 5. Rodar na web
 ```bash
-npx expo start --lan
+npx expo start --web
 ```
 
 ---
 
-## ✅ Tunnel
+## ⚠️ Problemas Comuns
 
-Caso a rede bloqueie conexões locais:
-
-```bash
-npx expo start --tunnel
-```
-
----
-
-# 📱 Executar no Celular
-
-1. Instale o aplicativo Expo Go
-2. Conecte celular e computador na mesma rede
-3. Escaneie o QR Code exibido no terminal
-
----
-
-# ⚠ Problemas Comuns
-
-## 🔴 Erro Firebase API KEY
-
-Verifique se:
-
-- o arquivo `firebase.ts` existe;
-- a API KEY está correta;
-- Authentication Email/Password está habilitado no Firebase.
-
----
-
-## 🔴 Expo Go não conecta
-
-Use:
-
+**Expo Go não conecta**
 ```bash
 npx expo start --tunnel
 ```
 
----
-
-## 🔴 Dependências quebradas
-
-Execute:
-
+**Dependências quebradas**
 ```bash
 npm install
-```
-
-e depois:
-
-```bash
 npx expo install --fix
 ```
 
----
-
-# 👩‍💻 Integrantes
-
-- Joice Barbosa Santos
-- Emilly de Sousa
-- Adriel Pereira
+**Celular não encontra a API**
+- Verifique se o backend está rodando
+- Verifique se o IP no `api.ts` está atualizado
+- Certifique-se que celular e computador estão na mesma rede Wi-Fi
 
 ---
 
-# 📚 Objetivo Acadêmico
+## 👩‍💻 Integrantes
 
-Projeto desenvolvido com foco em:
-
-- Desenvolvimento Mobile Híbrido
-- React Native
-- TypeScript
-- Firebase Authentication
-- UI/UX
-- Navegação Mobile
-- Integração Front + Backend
-- Estruturação de aplicações modernas
-- Git e GitHub
+| Nome | Papel |
+|---|---|
+| Joice Barbosa Santos | React Native Developer |
+| Adriel Pereira | Backend Java + Spring Boot |
+| Luiz Henrique | Node.js + DevOps |
 
 ---
 
-# 🚧 Status do Projeto
+## 🚧 Status
 
-## 🟢 Em desenvolvimento
+### ✅ Concluído — Frontend
+- Navegação completa com bottom tabs
+- Todas as telas implementadas
+- Validações e alertas
+- Fotos reais dos integrantes
+- Responsividade web e mobile
 
-Próximas implementações:
-
-- Integração Spring Boot
-- Bluetooth real
-- Detecção por proximidade
-- Chat entre usuários
-- Feed social
-- Sistema de conexões
-- Geolocalização
-- Integração ESP32
+### 🔄 Em andamento — Integração Backend
+- Integração com API Spring Boot
+- Autenticação real via JWT
+- Conexões reais via BLE + ESP32
+- Feed com publicações reais
+- Notificações push
 
 ---
 
-# 📄 Licença
+## 📄 Licença
 
 Projeto desenvolvido para fins acadêmicos e educacionais.
