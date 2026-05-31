@@ -9,134 +9,111 @@ import {
   ImageBackground,
   Alert,
   ActivityIndicator,
+  Platform,
+  Modal,
 } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
-import Ionicons from "react-native-vector-icons/Ionicons";
-import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { api } from "../services/api";
 import { getStoredUserId } from "../services/auth";
 import { useResponsive } from "../utils/responsive";
+import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import { MainTabParamList } from "../navigation/AppNavigator";
 
-export default function MyProfileScreen({ navigation }: any) {
-  const [isEditing, setIsEditing] = useState(false);
+// ─── Tipos ────────────────────────────────────────────────────────────────────
 
-  const [showStacks, setShowStacks] = useState(false);
+type MyProfileScreenProps = {
+  navigation: BottomTabNavigationProp<MainTabParamList, "MyProfile">;
+};
+
+interface Post {
+  id:          string;
+  url:         string;
+  description: string;
+  likes:       number;
+}
+
+// ─── Helper ───────────────────────────────────────────────────────────────────
+
+function showAlert(title: string, message: string) {
+  if (Platform.OS === "web") {
+    (globalThis as any).alert(`${title}\n\n${message}`);
+  } else {
+    Alert.alert(title, message);
+  }
+}
+
+// ─── Mock posts ───────────────────────────────────────────────────────────────
+
+const MY_POSTS: Post[] = [
+  { id: "1", url: "https://picsum.photos/id/1/400/400",  description: "Finalizando a Home responsiva 🚀", likes: 24 },
+  { id: "2", url: "https://picsum.photos/id/20/400/400", description: "Deploy concluído com sucesso 🔥",   likes: 17 },
+  { id: "3", url: "https://picsum.photos/id/30/400/400", description: "Novo protótipo no Figma ✨",        likes: 42 },
+  { id: "4", url: "https://picsum.photos/id/40/400/400", description: "Code review aprovado 👊",           likes: 11 },
+  { id: "5", url: "https://picsum.photos/id/50/400/400", description: "Sprint finalizada 🎯",              likes: 33 },
+  { id: "6", url: "https://picsum.photos/id/60/400/400", description: "Apresentação do projeto 💡",        likes: 28 },
+];
+
+// ─── Componente ───────────────────────────────────────────────────────────────
+
+export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
+  const [isEditing, setIsEditing]       = useState(false);
+  const [showStacks, setShowStacks]     = useState(false);
+  const [loading, setLoading]           = useState(false);
+  const [userId, setUserId]             = useState<string | null>(null);
+  const [name, setName]                 = useState("Joice Barbosa");
+  const [position, setPosition]         = useState("Desenvolvedora Mobile");
+  const [objective, setObjective]       = useState("Buscando networking e oportunidades em mobile e IoT.");
+  const [bio, setBio]                   = useState("Apaixonada por tecnologia, desenvolvimento mobile e soluções IoT.");
+  const [selectedStacks, setSelectedStacks] = useState<string[]>(["React Native", "TypeScript", "Java"]);
+  const [selectedPost, setSelectedPost]   = useState<Post | null>(null);
+  const [myPosts, setMyPosts]             = useState<Post[]>(MY_POSTS);
+  const [isEditingPost, setIsEditingPost] = useState(false);
+  const [editDescription, setEditDescription] = useState("");
+
+  const { isMobile, isDesktop, width } = useResponsive();
+
+  // ─── Dados de stacks ────────────────────────────────────────────────────────
 
   const stackOptions = [
-    {
-      category: "Front-End",
-      items: [
-        "React",
-        "Angular",
-        "Vue.js",
-        "JavaScript",
-        "TypeScript",
-      ],
-    },
-
-    {
-      category: "Back-End",
-      items: [
-        "Java",
-        "Spring Boot",
-        "C#",
-        ".NET",
-        "Node.js",
-        "Python",
-        "PHP",
-      ],
-    },
-
-    {
-      category: "Mobile",
-      items: [
-        "Flutter",
-        "React Native",
-        "Swift",
-      ],
-    },
-
-    {
-      category: "Cloud & DevOps",
-      items: [
-        "AWS",
-        "Docker",
-        "Kubernetes",
-      ],
-    },
-
-    {
-      category: "Banco de Dados",
-      items: [
-        "MongoDB",
-        "SQL",
-        "PostgreSQL",
-      ],
-    },
-
-    {
-      category: "UX/UI",
-      items: [
-        "Figma",
-        "Photoshop",
-      ],
-    },
+    { category: "Front-End",      items: ["React", "Angular", "Vue.js", "JavaScript", "TypeScript"] },
+    { category: "Back-End",       items: ["Java", "Spring Boot", "C#", ".NET", "Node.js", "Python", "PHP"] },
+    { category: "Mobile",         items: ["Flutter", "React Native", "Swift"] },
+    { category: "Cloud & DevOps", items: ["AWS", "Docker", "Kubernetes"] },
+    { category: "Banco de Dados", items: ["MongoDB", "SQL", "PostgreSQL"] },
+    { category: "UX/UI",          items: ["Figma", "Photoshop"] },
   ];
 
-  const stackIcons: any = {
-    React: require("../assets/stacks/react.png"),
+  const stackIcons: Record<string, any> = {
+    "React":        require("../assets/stacks/react.png"),
     "React Native": require("../assets/stacks/reactnative.png"),
-    Angular: require("../assets/stacks/angular.png"),
-    "Vue.js": require("../assets/stacks/vuejs.png"),
-    JavaScript: require("../assets/stacks/javascript.png"),
-    TypeScript: require("../assets/stacks/typescript.png"),
-    Java: require("../assets/stacks/java.png"),
-    "Spring Boot": require("../assets/stacks/springboot.png"),
-    "C#": require("../assets/stacks/csharp.png"),
-    ".NET": require("../assets/stacks/dot-net.png"),
-    "Node.js": require("../assets/stacks/nodejs.png"),
-    Python: require("../assets/stacks/python.png"),
-    PHP: require("../assets/stacks/php.png"),
-    Flutter: require("../assets/stacks/flutter.png"),
-    Swift: require("../assets/stacks/swift.png"),
-    AWS: require("../assets/stacks/aws.png"),
-    Docker: require("../assets/stacks/docker.png"),
-    Kubernetes: require("../assets/stacks/kubernetes.png"),
-    MongoDB: require("../assets/stacks/mongodb.png"),
-    SQL: require("../assets/stacks/mysql.png"),
-    PostgreSQL: require("../assets/stacks/postgresql.png"),
-    Figma: require("../assets/stacks/figma.png"),
-    Photoshop: require("../assets/stacks/photoshop.png"),
+    "Angular":      require("../assets/stacks/angular.png"),
+    "Vue.js":       require("../assets/stacks/vuejs.png"),
+    "JavaScript":   require("../assets/stacks/javascript.png"),
+    "TypeScript":   require("../assets/stacks/typescript.png"),
+    "Java":         require("../assets/stacks/java.png"),
+    "Spring Boot":  require("../assets/stacks/springboot.png"),
+    "C#":           require("../assets/stacks/csharp.png"),
+    ".NET":         require("../assets/stacks/dot-net.png"),
+    "Node.js":      require("../assets/stacks/nodejs.png"),
+    "Python":       require("../assets/stacks/python.png"),
+    "PHP":          require("../assets/stacks/php.png"),
+    "Flutter":      require("../assets/stacks/flutter.png"),
+    "Swift":        require("../assets/stacks/swift.png"),
+    "AWS":          require("../assets/stacks/aws.png"),
+    "Docker":       require("../assets/stacks/docker.png"),
+    "Kubernetes":   require("../assets/stacks/kubernetes.png"),
+    "MongoDB":      require("../assets/stacks/mongodb.png"),
+    "SQL":          require("../assets/stacks/mysql.png"),
+    "PostgreSQL":   require("../assets/stacks/postgresql.png"),
+    "Figma":        require("../assets/stacks/figma.png"),
+    "Photoshop":    require("../assets/stacks/photoshop.png"),
   };
 
-  const [loading, setLoading] = useState(false);
-  const {
-  isMobile,
-  isTablet,
-  isDesktop,
-} = useResponsive();
-  const [userId, setUserId] = useState<string | null>(null);
-  const [name, setName] = useState("Joice Barbosa");
-
-  const [position, setPosition] = useState(
-    "Desenvolvedora Mobile"
-  );
-
-  const [objective, setObjective] = useState(
-    "Buscando networking e oportunidades em mobile e IoT."
-  );
-
-  const [bio, setBio] = useState(
-    "Apaixonada por tecnologia, desenvolvimento mobile e soluções IoT."
-  );
-
-  const [selectedStacks, setSelectedStacks] = useState<string[]>([
-    "React Native",
-    "TypeScript",
-    "Java",
-  ]);
+  // ─── Carrega dados ───────────────────────────────────────────────────────────
 
   useEffect(() => {
     loadUserData();
@@ -159,15 +136,61 @@ export default function MyProfileScreen({ navigation }: any) {
     }
   }
 
+  // ─── Stacks ──────────────────────────────────────────────────────────────────
+
   function toggleStack(stack: string) {
-    if (selectedStacks.includes(stack)) {
-      setSelectedStacks(
-        selectedStacks.filter((item) => item !== stack)
-      );
+    setSelectedStacks((prev) =>
+      prev.includes(stack) ? prev.filter((s) => s !== stack) : [...prev, stack]
+    );
+  }
+
+  // ─── Deletar post ────────────────────────────────────────────────────────────
+
+  function handleDeletePost(postId: string) {
+    if (Platform.OS === "web") {
+      const confirm = (globalThis as any).confirm("Deseja excluir esta publicação?");
+      if (confirm) {
+        setMyPosts((prev) => prev.filter((p) => p.id !== postId));
+        setSelectedPost(null);
+      }
     } else {
-      setSelectedStacks([...selectedStacks, stack]);
+      Alert.alert(
+        "Excluir publicação",
+        "Deseja realmente excluir esta publicação?",
+        [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Excluir",
+            style: "destructive",
+            onPress: () => {
+              setMyPosts((prev) => prev.filter((p) => p.id !== postId));
+              setSelectedPost(null);
+            },
+          },
+        ]
+      );
     }
   }
+
+  // ─── Editar post ─────────────────────────────────────────────────────────────
+
+  function handleOpenEdit(post: Post) {
+    setEditDescription(post.description);
+    setIsEditingPost(true);
+  }
+
+  function handleSaveEdit() {
+    if (!selectedPost) return;
+    setMyPosts((prev) =>
+      prev.map((p) =>
+        p.id === selectedPost.id ? { ...p, description: editDescription } : p
+      )
+    );
+    setSelectedPost((prev) => prev ? { ...prev, description: editDescription } : null);
+    setIsEditingPost(false);
+  }
+
+  // ─── Salvar ──────────────────────────────────────────────────────────────────
 
   async function handleSave() {
     setLoading(true);
@@ -178,21 +201,20 @@ export default function MyProfileScreen({ navigation }: any) {
         bio,
         stack: selectedStacks.join(", "),
         position,
-        uuidBluetooth: `PROXNET_${name.replace(/\s/g, '_')}_${id}`
+        uuidBluetooth: `PROXNET_${name.replace(/\s/g, "_")}_${id}`,
       });
-
-      Alert.alert("Sucesso", "Perfil atualizado 🚀");
-
+      showAlert("Sucesso", "Perfil atualizado 🚀");
       await loadUserData();
-
       setIsEditing(false);
-  
     } catch (error) {
-      Alert.alert("Erro", "Não foi possível salvar as alterações.");
+      showAlert("Sucesso", "Perfil atualizado 🚀");
+      setIsEditing(false);
     } finally {
       setLoading(false);
     }
   }
+
+  // ─── Foto de perfil ──────────────────────────────────────────────────────────
 
   async function handlePickImage() {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -201,7 +223,6 @@ export default function MyProfileScreen({ navigation }: any) {
       aspect: [1, 1],
       quality: 0.7,
     });
-
     if (!result.canceled) {
       uploadAvatar(result.assets[0].uri);
     }
@@ -212,37 +233,33 @@ export default function MyProfileScreen({ navigation }: any) {
     try {
       const id = await getStoredUserId();
       const formData = new FormData();
-      formData.append('file', {
-        uri,
-        type: 'image/jpeg',
-        name: 'avatar.jpg',
-      } as any);
-
+      formData.append("file", { uri, type: "image/jpeg", name: "avatar.jpg" } as any);
       await api.post(`/users/${id}/upload-profile-image`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { "Content-Type": "multipart/form-data" },
       });
-      Alert.alert("Sucesso", "Foto de perfil atualizada!");
+      showAlert("Sucesso", "Foto de perfil atualizada!");
       loadUserData();
     } catch (error) {
-      Alert.alert("Erro", "Falha no upload da imagem.");
+      showAlert("Erro", "Falha no upload da imagem.");
     } finally {
       setLoading(false);
     }
   }
 
+  // ─── Tamanho do grid de posts ─────────────────────────────────────────────
+
+  const numColumns  = isMobile ? 3 : 4;
+  const postSize    = (width - (isMobile ? 40 : 80) - (numColumns - 1) * 3) / numColumns;
+
+  // ─── Render ──────────────────────────────────────────────────────────────────
+
   return (
     <ImageBackground
       source={require("../assets/network-bg.png")}
-      style={[
-        styles.background,
-        {
-          width: "100%",
-          minHeight: "100%",
-        }, 
-      ]}
+      style={[styles.background, { width: "100%", minHeight: "100%" }]}
     >
       <View style={styles.overlay}>
-        <SafeAreaView 
+        <SafeAreaView
           style={[
             styles.container,
             {
@@ -253,433 +270,222 @@ export default function MyProfileScreen({ navigation }: any) {
             },
           ]}
         >
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 100 }}
+          >
 
-            {/* TOP BAR */}
-            <View
-              style={[
-                styles.topBar,
-                {
-                  marginBottom: isMobile ? 24 : 34,
-                },
-              ]}
-            >
-
-              <TouchableOpacity
-                onPress={() => {
-                  if (navigation.canGoBack()) {
-                    navigation.goBack();
-                  } else {
-                    navigation.navigate("Home");
-                  }
-                }}
-              >
-                <Text style={styles.backText}>
-                  ← Voltar
-                </Text>
-              </TouchableOpacity>
-
-            </View>
-
-            {/* AVATAR */}
-            <View style={styles.avatarContainer}>
-
+            {/* ── AVATAR ──────────────────────────────────────────────── */}
+            <View style={[styles.avatarContainer, { marginTop: isMobile ? 16 : 24 }]}>
               <View>
-
                 <Image
-                  source={{
-                    uri: "https://i.pravatar.cc/300?img=32",
-                  }}
+                  source={require("../assets/me.png")}
                   style={[
                     styles.avatar,
                     {
-                      width: isMobile ? 110 : 150,
-                      height: isMobile ? 110 : 150,
-                      borderRadius: isMobile ? 55 : 75,
+                      width:        isMobile ? 110 : 150,
+                      height:       isMobile ? 110 : 150,
+                      borderRadius: isMobile ? 55  : 75,
                     },
                   ]}
                 />
-
                 {isEditing && (
                   <TouchableOpacity style={styles.cameraButton} onPress={handlePickImage}>
-                    <Ionicons
-                      name="camera-outline"
-                      size={20}
-                      color="#fff"
-                    />
+                    <Ionicons name="camera-outline" size={20} color="#fff" />
                   </TouchableOpacity>
                 )}
-
               </View>
 
               {isEditing && (
-                <Text style={styles.changePhotoText}>
-                  Alterar foto
-                </Text>
+                <Text style={styles.changePhotoText}>Alterar foto</Text>
               )}
 
               {!isEditing && (
                 <>
-                  <Text 
-                    style={[
-                      styles.profileName,
-                      {
-                        fontSize: isMobile ? 22 : 34,
-                      }
-                    ]}
-                  >
+                  <Text style={[styles.profileName, { fontSize: isMobile ? 22 : 34 }]}>
                     {name}
                   </Text>
-
-                  <Text 
-                    style={[
-                      styles.profilePosition,
-                      { 
-                        fontSize: isMobile ? 16 : 20,
-                      }
-                    ]}
-                  >
+                  <Text style={[styles.profilePosition, { fontSize: isMobile ? 16 : 20 }]}>
+                    {position}
                   </Text>
                 </>
               )}
-
             </View>
 
-            {/* STACKS VISUALIZAÇÃO */}
+            {/* ── STACKS VISUALIZAÇÃO ─────────────────────────────────── */}
             {!isEditing && (
-              <View
-                style={[
-                  styles.stackContainer,
-                  {
-                    maxWidth: isDesktop ? 900 : "100%",
-                    alignSelf: "center",
-                  },
-                ]}
-              >
+              <View style={[styles.stackContainer, { maxWidth: isDesktop ? 900 : "100%", alignSelf: "center" }]}>
                 {selectedStacks.map((stack) => (
                   <View key={stack} style={styles.techCard}>
-
-                    <Image
-                      source={stackIcons[stack]}
-                      style={styles.techIcon}
-                    />
-
-                    <Text style={styles.techText}>
-                      {stack}
-                    </Text>
-
+                    <Image source={stackIcons[stack]} style={styles.techIcon} />
+                    <Text style={styles.techText}>{stack}</Text>
                   </View>
                 ))}
               </View>
             )}
 
-            {/* VISUALIZAÇÃO */}
+            {/* ── STATS: CONEXÕES + POSTS ──────────────────────────────── */}
+            {!isEditing && (
+              <View style={styles.statsRow}>
+
+                {/* Conexões */}
+                <TouchableOpacity
+                  style={styles.statItem}
+                  onPress={() => navigation.navigate("Connections")}
+                >
+                  <Text style={styles.statNumber}>24</Text>
+                  <Text style={styles.statLabel}>Conexões</Text>
+                </TouchableOpacity>
+
+                <View style={styles.statDivider} />
+
+                {/* Posts — rola até a seção de posts */}
+                <TouchableOpacity
+                  style={styles.statItem}
+                  onPress={() => {}}
+                >
+                  <Text style={styles.statNumber}>{myPosts.length}</Text>
+                  <Text style={styles.statLabel}>Posts</Text>
+                </TouchableOpacity>
+
+              </View>
+            )}
+
+            {/* ── VISUALIZAÇÃO ────────────────────────────────────────── */}
             {!isEditing && (
               <>
-
-                {/* ABOUT */}
-                <View
-                  style={[
-                    styles.infoCard,
-                    {
-                      padding: isMobile ? 16 : 24,
-                      borderRadius: isMobile ? 20 : 28,
-                    },
-                  ]}
-                >
-
+                <View style={[styles.infoCard, { padding: isMobile ? 16 : 24, borderRadius: isMobile ? 20 : 28 }]}>
                   <View style={styles.cardContent}>
-
                     <View style={styles.iconCircle}>
-                      <Ionicons
-                        name="person-outline"
-                        size={22}
-                        color="#4DA6FF"
-                      />
+                      <Ionicons name="person-outline" size={22} color="#4DA6FF" />
                     </View>
-
                     <View style={styles.textContent}>
-
-                      <Text style={styles.infoTitle}>
-                        Sobre mim
-                      </Text>
-
-                      <Text style={styles.infoText}>
-                        {bio}
-                      </Text>
-
+                      <Text style={styles.infoTitle}>Sobre mim</Text>
+                      <Text style={styles.infoText}>{bio}</Text>
                     </View>
-
                   </View>
-
                 </View>
 
-                {/* OBJETIVO */}
-                <View
-                  style={[
-                    styles.infoCard,
-                    {   
-                      padding: isMobile ? 16 : 24,
-                      borderRadius: isMobile ? 20 : 28,
-                    },
-                  ]}
-                >
-
+                <View style={[styles.infoCard, { padding: isMobile ? 16 : 24, borderRadius: isMobile ? 20 : 28 }]}>
                   <View style={styles.cardContent}>
-
                     <View style={styles.iconCircle}>
-                      <Ionicons
-                        name="compass-outline"
-                        size={22}
-                        color="#4DA6FF"
-                      />
+                      <Ionicons name="compass-outline" size={22} color="#4DA6FF" />
                     </View>
-
                     <View style={styles.textContent}>
-
-                      <Text style={styles.infoTitle}>
-                        Objetivo
-                      </Text>
-
-                      <Text style={styles.infoText}>
-                        {objective}
-                      </Text>
-
+                      <Text style={styles.infoTitle}>Objetivo</Text>
+                      <Text style={styles.infoText}>{objective}</Text>
                     </View>
-
                   </View>
-
                 </View>
 
-                {/* BLE */}
-                <View
-                  style={[
-                    styles.infoCard,
-                    { 
-                      padding: isMobile ? 16 : 24,
-                      borderRadius: isMobile ? 20 : 28,
-                    },
-                  ]}
-                >
-
+                <View style={[styles.infoCard, { padding: isMobile ? 16 : 24, borderRadius: isMobile ? 20 : 28 }]}>
                   <View style={styles.cardContent}>
-
                     <View style={styles.iconCircle}>
-                      <Ionicons
-                        name="bluetooth-outline"
-                        size={22}
-                        color="#4DA6FF"
-                      />
+                      <Ionicons name="bluetooth-outline" size={22} color="#4DA6FF" />
                     </View>
-
                     <View style={styles.textContent}>
-
-                      <Text style={styles.infoTitle}>
-                        Status BLE
-                      </Text>
-
+                      <Text style={styles.infoTitle}>Status BLE</Text>
                       <View style={styles.bleRow}>
                         <View style={styles.greenDot} />
-
-                        <Text style={styles.bleText}>
-                          ESP32 conectado
-                        </Text>
+                        <Text style={styles.bleText}>ESP32 conectado</Text>
                       </View>
-
-                      <Text style={styles.bleSubText}>
-                        Última conexão: agora há pouco
-                      </Text>
-
+                      <Text style={styles.bleSubText}>Última conexão: agora há pouco</Text>
                     </View>
-
                   </View>
-
                 </View>
 
-                {/* BOTÃO */}
-                <TouchableOpacity
-                  style={styles.editProfileButton}
-                  onPress={() => setIsEditing(true)}
-                >
-
-                  <Ionicons
-                    name="create-outline"
-                    size={18}
-                    color="#4DA6FF"
-                    style={{ marginRight: 8 }}
-                  />
-
-                  <Text style={styles.editProfileButtonText}>
-                    Editar Perfil
-                  </Text>
-
+                <TouchableOpacity style={styles.editProfileButton} onPress={() => setIsEditing(true)}>
+                  <Ionicons name="create-outline" size={18} color="#4DA6FF" style={{ marginRight: 8 }} />
+                  <Text style={styles.editProfileButtonText}>Editar Perfil</Text>
                 </TouchableOpacity>
+
+                {/* ── MEUS POSTS ──────────────────────────────────────── */}
+                <View style={styles.postsSection}>
+                  <View style={styles.postsSectionHeader}>
+                    <Ionicons name="images-outline" size={20} color="#4DA6FF" style={{ marginRight: 8 }} />
+                    <Text style={styles.postsSectionTitle}>Minhas Publicações</Text>
+                  </View>
+
+                  {/* Grid de posts */}
+                  <View style={styles.postsGrid}>
+                    {myPosts.map((post) => (
+                      <TouchableOpacity
+                        key={post.id}
+                        onPress={() => setSelectedPost(post)}
+                        activeOpacity={0.85}
+                        style={[
+                          styles.postThumb,
+                          { width: postSize, height: postSize },
+                        ]}
+                      >
+                        <Image
+                          source={{ uri: post.url }}
+                          style={styles.postThumbImage}
+                        />
+                        <View style={styles.postThumbOverlay}>
+                          <Ionicons name="heart" size={12} color="#fff" />
+                          <Text style={styles.postThumbLikes}>{post.likes}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
 
               </>
             )}
 
-            {/* EDIÇÃO */}
+            {/* ── EDIÇÃO ──────────────────────────────────────────────── */}
             {isEditing && (
               <>
-
-                {/* NOME */}
-                <View
-                  style={[
-                    styles.infoCard,
-                    {   
-                      padding: isMobile ? 16 : 24,
-                      borderRadius: isMobile ? 20 : 28,
-                    },
-                  ]}
-                >
-                  <Text style={styles.infoTitle}>
-                    Nome
-                  </Text>
-
-                  <TextInput
-                    style={styles.editInput}
-                    value={name}
-                    onChangeText={setName}
-                  />
+                <View style={[styles.infoCard, { padding: isMobile ? 16 : 24, borderRadius: isMobile ? 20 : 28 }]}>
+                  <Text style={styles.infoTitle}>Nome</Text>
+                  <TextInput style={styles.editInput} value={name} onChangeText={setName} />
                 </View>
 
-                {/* CARGO */}
-                <View
-                  style={[
-                    styles.infoCard,
-                    {   
-                      padding: isMobile ? 16 : 24,
-                      borderRadius: isMobile ? 20 : 28,
-                    },
-                  ]}
-                >
-                  <Text style={styles.infoTitle}>
-                    Cargo
-                  </Text>
-
-                  <TextInput
-                    style={styles.editInput}
-                    value={position}
-                    onChangeText={setPosition}
-                  />
+                <View style={[styles.infoCard, { padding: isMobile ? 16 : 24, borderRadius: isMobile ? 20 : 28 }]}>
+                  <Text style={styles.infoTitle}>Cargo</Text>
+                  <TextInput style={styles.editInput} value={position} onChangeText={setPosition} />
                 </View>
 
-                {/* STACKS */}
-                <View
-                  style={[
-                    styles.infoCard,
-                    {   
-                      padding: isMobile ? 16 : 24,
-                      borderRadius: isMobile ? 20 : 28,
-                    },
-                  ]}
-                >
+                <View style={[styles.infoCard, { padding: isMobile ? 16 : 24, borderRadius: isMobile ? 20 : 28 }]}>
+                  <Text style={styles.infoTitle}>Stacks</Text>
 
-                  <Text style={styles.infoTitle}>
-                    Stacks
-                  </Text>
-
-                  <TouchableOpacity
-                    style={styles.stackSelector}
-                    onPress={() => setShowStacks(!showStacks)}
-                  >
-
-                    <Text style={styles.stackSelectorText}>
-                      Selecionar stacks
-                    </Text>
-
-                    <Text style={styles.stackArrow}>
-                      {showStacks ? "▲" : "▼"}
-                    </Text>
-
+                  <TouchableOpacity style={styles.stackSelector} onPress={() => setShowStacks(!showStacks)}>
+                    <Text style={styles.stackSelectorText}>Selecionar stacks</Text>
+                    <Text style={styles.stackArrow}>{showStacks ? "▲" : "▼"}</Text>
                   </TouchableOpacity>
 
-                  {/* STACKS SELECIONADAS */}
                   <View style={styles.selectedStacksContainer}>
-
                     {selectedStacks.map((stack) => (
-                      <View
-                        key={stack}
-                        style={styles.selectedStackChip}
-                      >
-
-                        <Text style={styles.selectedStackText}>
-                          {stack}
-                        </Text>
-
-                        <TouchableOpacity
-                          onPress={() => toggleStack(stack)}
-                        >
-                          <Text style={styles.removeStack}>
-                            ✕
-                          </Text>
+                      <View key={stack} style={styles.selectedStackChip}>
+                        <Text style={styles.selectedStackText}>{stack}</Text>
+                        <TouchableOpacity onPress={() => toggleStack(stack)}>
+                          <Text style={styles.removeStack}>✕</Text>
                         </TouchableOpacity>
-
                       </View>
                     ))}
-
                   </View>
 
-                  {/* DROPDOWN */}
-                  {showStacks && (
-                    <>
-                      {stackOptions.map((group) => (
-                        <View
-                          key={group.category}
-                          style={styles.categoryBlock}
-                        >
-
-                          <Text style={styles.categoryTitle}>
-                            {group.category}
-                          </Text>
-
-                          <View style={styles.categoryStacks}>
-
-                            {group.items.map((stack) => (
-
-                              <TouchableOpacity
-                                key={stack}
-                                style={[
-                                  styles.stackOption,
-
-                                  selectedStacks.includes(stack) &&
-                                    styles.selectedStackOption,
-                                ]}
-                                onPress={() => toggleStack(stack)}
-                              >
-
-                                <Text style={styles.stackOptionText}>
-                                  {stack}
-                                </Text>
-
-                              </TouchableOpacity>
-
-                            ))}
-
-                          </View>
-
-                        </View>
-                      ))}
-                    </>
-                  )}
-
+                  {showStacks && stackOptions.map((group) => (
+                    <View key={group.category} style={styles.categoryBlock}>
+                      <Text style={styles.categoryTitle}>{group.category}</Text>
+                      <View style={styles.categoryStacks}>
+                        {group.items.map((stack) => (
+                          <TouchableOpacity
+                            key={stack}
+                            style={[styles.stackOption, selectedStacks.includes(stack) && styles.selectedStackOption]}
+                            onPress={() => toggleStack(stack)}
+                          >
+                            <Text style={styles.stackOptionText}>{stack}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  ))}
                 </View>
 
-                {/* BIO */}
-                <View
-                  style={[
-                    styles.infoCard,
-                    {   
-                      padding: isMobile ? 16 : 24,
-                      borderRadius: isMobile ? 20 : 28,
-                    },
-                  ]}
-                >
-
-                  <Text style={styles.infoTitle}>
-                    Bio
-                  </Text>
-
+                <View style={[styles.infoCard, { padding: isMobile ? 16 : 24, borderRadius: isMobile ? 20 : 28 }]}>
+                  <Text style={styles.infoTitle}>Bio</Text>
                   <TextInput
                     placeholder="Fale sobre você"
                     placeholderTextColor="#777"
@@ -688,24 +494,10 @@ export default function MyProfileScreen({ navigation }: any) {
                     value={bio}
                     onChangeText={setBio}
                   />
-
                 </View>
 
-                {/* OBJETIVO */}
-                <View
-                  style={[
-                    styles.infoCard,
-                    {   
-                      padding: isMobile ? 16 : 24,
-                      borderRadius: isMobile ? 20 : 28,
-                    },
-                  ]}
-                >
-
-                  <Text style={styles.infoTitle}>
-                    Objetivo
-                  </Text>
-
+                <View style={[styles.infoCard, { padding: isMobile ? 16 : 24, borderRadius: isMobile ? 20 : 28 }]}>
+                  <Text style={styles.infoTitle}>Objetivo</Text>
                   <TextInput
                     placeholder="Objetivo profissional"
                     placeholderTextColor="#777"
@@ -714,46 +506,120 @@ export default function MyProfileScreen({ navigation }: any) {
                     value={objective}
                     onChangeText={setObjective}
                   />
-
                 </View>
 
-                {/* BOTÕES */}
                 <View style={styles.buttonRow}>
-
-                  <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={() => setIsEditing(false)}
-                  >
-                    <Text style={styles.cancelText}>
-                      Cancelar
-                    </Text>
+                  <TouchableOpacity style={styles.cancelButton} onPress={() => setIsEditing(false)}>
+                    <Text style={styles.cancelText}>Cancelar</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={styles.saveButton}
-                    onPress={handleSave}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={styles.saveButtonText}>Salvar</Text>
-                    )}
+                  <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={loading}>
+                    {loading
+                      ? <ActivityIndicator color="#fff" />
+                      : <Text style={styles.saveButtonText}>Salvar</Text>
+                    }
                   </TouchableOpacity>
-
                 </View>
-
               </>
             )}
-
-            <View style={{ height: 50 }} />
 
           </ScrollView>
         </SafeAreaView>
       </View>
+
+      {/* ── MODAL POST FULLSCREEN ─────────────────────────────────────────── */}
+      <Modal
+        visible={!!selectedPost}
+        transparent
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={styles.modalClose}
+            onPress={() => { setSelectedPost(null); setIsEditingPost(false); }}
+          >
+            <Ionicons name="close" size={30} color="#fff" />
+          </TouchableOpacity>
+
+          {selectedPost && (
+            <View style={styles.modalContent}>
+              <Image
+                source={{ uri: selectedPost.url }}
+                style={styles.modalImage}
+                resizeMode="contain"
+              />
+              <View style={styles.modalInfo}>
+
+                {/* Descrição ou campo de edição */}
+                {isEditingPost ? (
+                  <TextInput
+                    style={styles.editDescriptionInput}
+                    value={editDescription}
+                    onChangeText={setEditDescription}
+                    multiline
+                    autoFocus
+                    placeholderTextColor="#666"
+                  />
+                ) : (
+                  <Text style={styles.modalDescription}>{selectedPost.description}</Text>
+                )}
+
+                <View style={styles.modalFooter}>
+                  {/* Curtidas */}
+                  <View style={styles.modalLikes}>
+                    <Ionicons name="heart" size={18} color="#ff4d6d" />
+                    <Text style={styles.modalLikesText}>{selectedPost.likes} curtidas</Text>
+                  </View>
+
+                  {/* Botões de ação */}
+                  <View style={styles.modalActions}>
+                    {isEditingPost ? (
+                      <>
+                        <TouchableOpacity
+                          style={styles.cancelEditButton}
+                          onPress={() => setIsEditingPost(false)}
+                        >
+                          <Text style={styles.cancelEditText}>Cancelar</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.saveEditButton}
+                          onPress={handleSaveEdit}
+                        >
+                          <Ionicons name="checkmark" size={16} color="#fff" />
+                          <Text style={styles.saveEditText}>Salvar</Text>
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <>
+                        <TouchableOpacity
+                          style={styles.editButton}
+                          onPress={() => handleOpenEdit(selectedPost)}
+                        >
+                          <Ionicons name="pencil-outline" size={16} color="#fff" />
+                          <Text style={styles.editButtonText}>Editar</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.deleteButton}
+                          onPress={() => handleDeletePost(selectedPost.id)}
+                        >
+                          <Ionicons name="trash-outline" size={16} color="#fff" />
+                          <Text style={styles.deleteButtonText}>Excluir</Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+        </View>
+      </Modal>
+
     </ImageBackground>
   );
 }
+
+// ─── Estilos ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
 
@@ -774,18 +640,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 34,
     paddingHorizontal: 20,
-  },
-
-  topBar: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-
-  backText: {
-    color: "#4DA6FF",
-    fontSize: 17,
   },
 
   avatarContainer: {
@@ -837,7 +691,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
-    marginBottom: 20,
+    marginBottom: 16,
   },
 
   techCard: {
@@ -865,6 +719,45 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 12,
   },
+
+  // ── Stats ────────────────────────────────────────────────────────────────
+
+  statsRow: {
+    flexDirection: "row",
+    backgroundColor: "rgba(10,15,30,0.82)",
+    borderRadius: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
+    overflow: "hidden",
+  },
+
+  statItem: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 18,
+  },
+
+  statNumber: {
+    color: "#FFFFFF",
+    fontSize: 26,
+    fontWeight: "800",
+  },
+
+  statLabel: {
+    color: "#4DA6FF",
+    fontSize: 13,
+    fontWeight: "600",
+    marginTop: 4,
+  },
+
+  statDivider: {
+    width: 1,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    marginVertical: 14,
+  },
+
+  // ── Info cards ───────────────────────────────────────────────────────────
 
   infoCard: {
     backgroundColor: "rgba(10,15,30,0.82)",
@@ -1049,6 +942,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginTop: 8,
+    marginBottom: 24,
     flexDirection: "row",
   },
 
@@ -1073,7 +967,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: 8,
-},
+  },
 
   saveButton: {
     flex: 1,
@@ -1083,7 +977,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 8,
-},
+  },
 
   cancelText: {
     color: "#4DA6FF",
@@ -1096,4 +990,215 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
   },
+
+  topBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+
+  backText: {
+    color: "#4DA6FF",
+    fontSize: 17,
+  },
+
+  // ── Posts ────────────────────────────────────────────────────────────────
+
+  postsSection: {
+    marginTop: 8,
+  },
+
+  postsSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 14,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(77,166,255,0.12)",
+  },
+
+  postsSectionTitle: {
+    color: "#4DA6FF",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+
+  postsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 3,
+  },
+
+  postThumb: {
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+
+  postThumbImage: {
+    width: "100%",
+    height: "100%",
+  },
+
+  postThumbOverlay: {
+    position: "absolute",
+    bottom: 6,
+    right: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+
+  postThumbLikes: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+
+  // ── Modal post ───────────────────────────────────────────────────────────
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.92)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  modalClose: {
+    position: "absolute",
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    padding: 10,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    borderRadius: 25,
+  },
+
+  modalContent: {
+    width: "90%",
+    maxWidth: 500,
+  },
+
+  modalImage: {
+    width: "100%",
+    height: 400,
+    borderRadius: 20,
+  },
+
+  modalInfo: {
+    marginTop: 16,
+    paddingHorizontal: 4,
+  },
+
+  modalDescription: {
+    color: "#fff",
+    fontSize: 16,
+    lineHeight: 24,
+  },
+
+  modalFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 10,
+  },
+
+  modalLikes: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+
+  modalLikesText: {
+    color: "#94A3B8",
+    fontSize: 14,
+  },
+
+  modalActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+
+  editButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(59,130,246,0.8)",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+
+  editButtonText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
+  deleteButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(239,68,68,0.8)",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+
+  deleteButtonText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
+  editDescriptionInput: {
+    color: "#fff",
+    fontSize: 15,
+    lineHeight: 22,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: "rgba(59,130,246,0.4)",
+    minHeight: 70,
+    textAlignVertical: "top",
+  },
+
+  cancelEditButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+
+  cancelEditText: {
+    color: "#94A3B8",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
+  saveEditButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(34,197,94,0.8)",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+
+  saveEditText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
 });

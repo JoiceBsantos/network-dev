@@ -12,73 +12,70 @@ import {
   Animated,
   Alert,
   ScrollView,
-} from 'react-native';
+} from "react-native";
 
-import { useEffect, useRef, useState } from 'react';
-import { Ionicons } from '@expo/vector-icons';
-import { register } from '../services/auth';
+import { useEffect, useRef, useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { register } from "../services/auth";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../navigation/AppNavigator";
 
-export default function CreateProfileScreen({ navigation }: any) {
+// ─── Tipos ────────────────────────────────────────────────────────────────────
+
+type CreateProfileScreenProps = {
+  navigation: NativeStackNavigationProp<RootStackParamList, "CreateProfile">;
+};
+
+interface FormState {
+  name:     string;
+  email:    string;
+  password: string;
+  bio:      string;
+  stack:    string;
+  position: string;
+}
+
+type FormErrors = Partial<Record<keyof FormState, string>>;
+
+// ─── Helper ───────────────────────────────────────────────────────────────────
+
+function showAlert(title: string, message: string) {
+  if (Platform.OS === "web") {
+    (globalThis as any).alert(`${title}\n\n${message}`);
+  } else {
+    Alert.alert(title, message);
+  }
+}
+
+// ─── Dados de stacks ──────────────────────────────────────────────────────────
+
+const STACK_OPTIONS = [
+  { category: "Front-End",                       items: ["React", "Angular", "Vue.js", "JavaScript", "TypeScript"] },
+  { category: "Back-End",                        items: ["Java", "Spring Boot", "C#", ".NET", "Node.js", "Python", "Django", "FastAPI", "PHP"] },
+  { category: "Mobile",                          items: ["Flutter", "React Native", "Kotlin", "Swift"] },
+  { category: "Cloud & DevOps",                  items: ["AWS", "Azure", "Google Cloud", "Docker", "Kubernetes"] },
+  { category: "Banco de Dados",                  items: ["SQL", "MongoDB", "PostgreSQL", "MySQL"] },
+  { category: "Dados & Inteligência Artificial",  items: ["Python", "Power BI", "AI/ML", "Data Science"] },
+  { category: "UX/UI Design",                    items: ["Figma", "Photoshop", "UX/UI"] },
+  { category: "Cyber Security",                  items: ["Cyber Security"] },
+  { category: "Full Stack",                      items: ["Full Stack"] },
+];
+
+// ─── Componente ───────────────────────────────────────────────────────────────
+
+export default function CreateProfileScreen({ navigation }: CreateProfileScreenProps) {
   const translateY = useRef(new Animated.Value(300)).current;
-  const [showStacks, setShowStacks] = useState(false);
+
+  const [showStacks, setShowStacks]         = useState(false);
   const [selectedStacks, setSelectedStacks] = useState<string[]>([]);
-  const {
-  width,
-  isMobile,
-  isTablet,
-  isDesktop,
-  isSmallDesktop,
-} = useResponsive();
-
-  const stackOptions = [
-    {
-      category: 'Front-End',
-      items: ['React', 'Angular', 'Vue.js', 'JavaScript', 'TypeScript'],
-    },
-    {
-      category: 'Back-End',
-      items: ['Java', 'Spring Boot', 'C#', '.NET', 'Node.js', 'Python', 'Django', 'FastAPI', 'PHP'],
-    },
-    {
-      category: 'Mobile',
-      items: ['Flutter', 'React Native', 'Kotlin', 'Swift'],
-    },
-    {
-      category: 'Cloud & DevOps',
-      items: ['AWS', 'Azure', 'Google Cloud', 'Docker', 'Kubernetes'],
-    },
-    {
-      category: 'Banco de Dados',
-      items: ['SQL', 'MongoDB', 'PostgreSQL', 'MySQL'],
-    },
-    {
-      category: 'Dados & Inteligência Artificial',
-      items: ['Python', 'Power BI', 'AI/ML', 'Data Science'],
-    },
-    {
-      category: 'UX/UI Design',
-      items: ['Figma', 'Photoshop', 'UX/UI'],
-    },
-    {
-      category: 'Cyber Security',
-      items: ['Cyber Security'],
-    },
-    {
-      category: 'Full Stack',
-      items: ['Full Stack'],
-    },
-  ];
-
-  const [form, setForm] = useState({
-    name: '',
-    email: '',
-    password: '',
-    bio: '',
-    stack: '',
-    position: '', // Alinhado com a documentação (position em vez de role)
+  const [errors, setErrors]                 = useState<FormErrors>({});
+  const [form, setForm]                     = useState<FormState>({
+    name: "", email: "", password: "", bio: "", stack: "", position: "",
   });
 
-  const [errors, setErrors] = useState<any>({});
+  const { width, isMobile, isTablet } = useResponsive();
+
+  // ── Animação de entrada ────────────────────────────────────────────────────
 
   useEffect(() => {
     Animated.timing(translateY, {
@@ -88,53 +85,63 @@ export default function CreateProfileScreen({ navigation }: any) {
     }).start();
   }, []);
 
-  function validate() {
-    let newErrors: any = {};
-    if (!form.name) newErrors.name = 'Nome é obrigatório';
-    if (!form.email) newErrors.email = 'Email é obrigatório';
-    if (!form.password) newErrors.password = 'Senha é obrigatória';
-    if (form.password.length < 6) newErrors.password = 'Senha deve ter pelo menos 6 caracteres';
+  // ── Validação ──────────────────────────────────────────────────────────────
 
+  function validate(): boolean {
+    const newErrors: FormErrors = {};
+    if (!form.name)               newErrors.name     = "Nome é obrigatório";
+    if (!form.email)              newErrors.email    = "Email é obrigatório";
+    if (!form.password)           newErrors.password = "Senha é obrigatória";
+    if (form.password.length < 6) newErrors.password = "Senha deve ter pelo menos 6 caracteres";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }
+
+  // ── Submit ─────────────────────────────────────────────────────────────────
 
   async function handleSubmit() {
     if (!validate()) return;
 
     try {
-      // Envia o objeto completo conforme exigido pelo /api/users/register
       await register({
-        name: form.name,
-        email: form.email,
-        password: form.password,
-        bio: form.bio,
-        stack: form.stack,
-        position: form.position,
-        uuidBluetooth: `DEV_${Math.floor(Math.random() * 1000)}` // Exemplo de UUID
+        name:          form.name,
+        email:         form.email,
+        password:      form.password,
+        bio:           form.bio,
+        stack:         form.stack,
+        position:      form.position,
+        uuidBluetooth: `DEV_${Math.floor(Math.random() * 1000)}`,
       });
 
-      Alert.alert('Sucesso', 'Conta criada com sucesso!');
-      navigation.navigate('Home');
-    } catch (error: any) {
+      showAlert("Sucesso", "Conta criada com sucesso!");
+      navigation.navigate("Main");
+    } catch (error) {
       console.log(error);
-      Alert.alert('Erro', 'Não foi possível criar a conta');
+      showAlert("Erro", "Não foi possível criar a conta");
     }
   }
 
+  // ── Toggle stack ───────────────────────────────────────────────────────────
+
+  function toggleStack(item: string) {
+    const updated = selectedStacks.includes(item)
+      ? selectedStacks.filter((s) => s !== item)
+      : [...selectedStacks, item];
+
+    setSelectedStacks(updated);
+    setForm((prev) => ({ ...prev, stack: updated.join(", ") }));
+  }
+
+  // ─── Render ───────────────────────────────────────────────────────────────
+
   return (
     <View style={styles.overlay}>
-      <TouchableWithoutFeedback
-        onPress={() => {
-          Keyboard.dismiss();
-          setShowStacks(false);
-        }}
-      >
+      <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); setShowStacks(false); }}>
         <View style={StyleSheet.absoluteFill} />
       </TouchableWithoutFeedback>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.keyboardView}
       >
         <Animated.View
@@ -143,38 +150,24 @@ export default function CreateProfileScreen({ navigation }: any) {
             {
               transform: [{ translateY }],
               paddingHorizontal: width < 380 ? 18 : 26,
-              paddingVertical: width < 380 ? 18 : 24,
-              maxWidth: isTablet ? 620 : 520,
+              paddingVertical:   width < 380 ? 18 : 24,
+              maxWidth:          isTablet ? 620 : 520,
             },
           ]}
         >
-          <ScrollView 
-            contentContainerStyle={styles.scrollContent} 
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.handle} />
 
-            <Text
-              style={[
-                styles.title,
-                {
-                  fontSize: width < 380 ? 28 : 34,
-                }
-              ]}
-            >
-              Crie seu perfil</Text>
+            <Text style={[styles.title, { fontSize: width < 380 ? 28 : 34 }]}>
+              Crie seu perfil
+            </Text>
             <Text style={styles.subtitle}>Complete seu perfil para começar</Text>
 
             {/* NOME */}
-            <View
-              style={[
-                styles.inputBox,
-                {
-                  paddingVertical: isMobile ? 4 : 8,
-                }
-              ]}
-
-            >
+            <View style={[styles.inputBox, { paddingVertical: isMobile ? 4 : 8 }]}>
               <Ionicons name="person-outline" size={18} color="#888" />
               <TextInput
                 placeholder="Nome completo"
@@ -187,14 +180,7 @@ export default function CreateProfileScreen({ navigation }: any) {
             {errors.name && <Text style={styles.error}>{errors.name}</Text>}
 
             {/* EMAIL */}
-            <View
-              style={[
-                styles.inputBox,
-                {
-                  paddingVertical: isMobile ? 4 : 8,
-                }
-              ]}
-            >
+            <View style={[styles.inputBox, { paddingVertical: isMobile ? 4 : 8 }]}>
               <Ionicons name="mail-outline" size={18} color="#888" />
               <TextInput
                 placeholder="Email"
@@ -209,14 +195,7 @@ export default function CreateProfileScreen({ navigation }: any) {
             {errors.email && <Text style={styles.error}>{errors.email}</Text>}
 
             {/* SENHA */}
-            <View
-              style={[
-                styles.inputBox,
-                {
-                  paddingVertical: isMobile ? 4 : 8,
-                }
-              ]}
-            >
+            <View style={[styles.inputBox, { paddingVertical: isMobile ? 4 : 8 }]}>
               <Ionicons name="lock-closed-outline" size={18} color="#888" />
               <TextInput
                 placeholder="Senha"
@@ -230,14 +209,7 @@ export default function CreateProfileScreen({ navigation }: any) {
             {errors.password && <Text style={styles.error}>{errors.password}</Text>}
 
             {/* BIO */}
-            <View
-              style={[
-                styles.inputBox,
-                {
-                  paddingVertical: isMobile ? 4 : 8,
-                }
-              ]}
-            >
+            <View style={[styles.inputBox, { paddingVertical: isMobile ? 4 : 8 }]}>
               <Ionicons name="document-text-outline" size={18} color="#888" />
               <TextInput
                 placeholder="Bio"
@@ -257,17 +229,13 @@ export default function CreateProfileScreen({ navigation }: any) {
               >
                 <Ionicons name="code-slash-outline" size={18} color="#888" />
                 <Text
-                  style={{
-                    flex: 1,
-                    padding: 10,
-                    color: selectedStacks.length > 0 ? '#111' : '#999',
-                  }}
+                  style={[styles.input, { color: selectedStacks.length > 0 ? "#111" : "#999" }]}
                   numberOfLines={1}
                 >
-                  {selectedStacks.length > 0 ? selectedStacks.join(', ') : 'Selecionar stacks'}
+                  {selectedStacks.length > 0 ? selectedStacks.join(", ") : "Selecionar stacks"}
                 </Text>
                 <Ionicons
-                  name={showStacks ? 'chevron-up-outline' : 'chevron-down-outline'}
+                  name={showStacks ? "chevron-up-outline" : "chevron-down-outline"}
                   size={18}
                   color="#666"
                 />
@@ -276,7 +244,7 @@ export default function CreateProfileScreen({ navigation }: any) {
               {showStacks && (
                 <View style={styles.dropdown}>
                   <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
-                    {stackOptions.map((group) => (
+                    {STACK_OPTIONS.map((group) => (
                       <View key={group.category}>
                         <Text style={styles.categoryTitle}>{group.category}</Text>
                         {group.items.map((item) => {
@@ -285,23 +253,9 @@ export default function CreateProfileScreen({ navigation }: any) {
                             <TouchableOpacity
                               key={item}
                               style={styles.option}
-                              onPress={() => {
-                                let updatedStacks = [];
-                                if (isSelected) {
-                                  updatedStacks = selectedStacks.filter(stack => stack !== item);
-                                } else {
-                                  updatedStacks = [...selectedStacks, item];
-                                }
-                                setSelectedStacks(updatedStacks);
-                                setForm({ ...form, stack: updatedStacks.join(', ') });
-                              }}
+                              onPress={() => toggleStack(item)}
                             >
-                              <Text
-                                style={{
-                                  color: isSelected ? '#3B5BDB' : '#111',
-                                  fontWeight: isSelected ? 'bold' : 'normal',
-                                }}
-                              >
+                              <Text style={{ color: isSelected ? "#3B5BDB" : "#111", fontWeight: isSelected ? "bold" : "normal" }}>
                                 {item}
                               </Text>
                             </TouchableOpacity>
@@ -315,14 +269,7 @@ export default function CreateProfileScreen({ navigation }: any) {
             </View>
 
             {/* CARGO */}
-            <View
-              style={[
-                styles.inputBox,
-                {
-                  paddingVertical: isMobile ? 4 : 8,
-                }
-              ]}
-            >
+            <View style={[styles.inputBox, { paddingVertical: isMobile ? 4 : 8 }]}>
               <Ionicons name="briefcase-outline" size={18} color="#888" />
               <TextInput
                 placeholder="Cargo / Posição"
@@ -343,12 +290,7 @@ export default function CreateProfileScreen({ navigation }: any) {
 
             {/* BOTÃO */}
             <TouchableOpacity
-              style={[
-                styles.button,
-                {
-                  paddingVertical: isMobile ? 14 : 18,
-                },
-              ]}
+              style={[styles.button, { paddingVertical: isMobile ? 14 : 18 }]}
               onPress={handleSubmit}
             >
               <Text style={styles.buttonText}>Entrar na rede</Text>
@@ -374,143 +316,169 @@ export default function CreateProfileScreen({ navigation }: any) {
   );
 }
 
+// ─── Estilos ──────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
+
   overlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(5, 10, 25, 0.8)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(5, 10, 25, 0.8)",
   },
+
   keyboardView: {
-    width: '100%',
+    width: "100%",
     paddingHorizontal: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
+
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 28,
     paddingHorizontal: 24,
     paddingTop: 10,
     paddingBottom: 10,
-    width: '100%',
+    width: "100%",
     maxWidth: 580,
     minWidth: 320,
-    maxHeight: '92%',
+    maxHeight: "92%",
     elevation: 5,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 10,
   },
+
   scrollContent: {
     paddingBottom: 20,
   },
+
   handle: {
     width: 40,
     height: 5,
-    backgroundColor: '#ddd',
+    backgroundColor: "#ddd",
     borderRadius: 10,
-    alignSelf: 'center',
+    alignSelf: "center",
     marginBottom: 10,
   },
+
   title: {
-    fontWeight: '800',
-    textAlign: 'center',
-    color: '#111827',
+    fontWeight: "800",
+    textAlign: "center",
+    color: "#111827",
   },
+
   subtitle: {
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 16,
     lineHeight: 24,
-    color: '#666',
+    color: "#666",
     marginTop: 6,
     marginBottom: 15,
   },
+
   inputBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F3F4F6",
     paddingHorizontal: 10,
     borderRadius: 12,
     marginBottom: 10,
   },
+
   input: {
     flex: 1,
     paddingHorizontal: 10,
+    paddingVertical: 10,
     fontSize: 16,
+    color: "#111",
   },
+
   dropdown: {
-    width: '100%',
+    width: "100%",
     maxHeight: 240,
     borderRadius: 16,
     marginTop: 6,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOpacity: 0.1,
-    shadowRadius: 12, 
+    shadowRadius: 12,
   },
+
   categoryTitle: {
     fontSize: 13,
-    fontWeight: 'bold',
-    color: '#3B5BDB',
+    fontWeight: "bold",
+    color: "#3B5BDB",
     paddingHorizontal: 12,
     paddingTop: 14,
     paddingBottom: 8,
-    backgroundColor: '#F8FAFF',
+    backgroundColor: "#F8FAFF",
   },
+
   option: {
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: "#F3F4F6",
   },
+
   error: {
-    color: 'red',
+    color: "red",
     fontSize: 11,
     marginBottom: 5,
     marginLeft: 5,
   },
+
   infoBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EEF3FF',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EEF3FF",
     padding: 10,
     borderRadius: 12,
     marginTop: 10,
   },
+
   infoText: {
-    color: '#4A6CF7',
+    color: "#4A6CF7",
     fontSize: 12,
     marginLeft: 5,
     flex: 1,
   },
+
   button: {
-    backgroundColor: '#3B5BDB',
+    backgroundColor: "#3B5BDB",
     borderRadius: 18,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 18,
   },
+
   buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
   },
+
   bluetooth: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 12,
   },
+
   footer: {
     fontSize: 11,
-    color: '#666',
+    color: "#666",
     marginLeft: 5,
-    textAlign: 'center',
+    textAlign: "center",
   },
+
   close: {
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 12,
     marginBottom: 28,
-    color: '#3B5BDB',
+    color: "#3B5BDB",
   },
+
 });

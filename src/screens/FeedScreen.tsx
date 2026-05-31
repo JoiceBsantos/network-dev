@@ -28,7 +28,30 @@ import { getStoredUserId } from "../services/auth";
 
 import { useResponsive } from "../utils/responsive";
 
-const MOCK_PHOTOS = [
+import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+
+import { MainTabParamList } from "../navigation/AppNavigator";
+
+// ─── Tipos ────────────────────────────────────────────────────────────────────
+
+type FeedScreenProps = {
+  navigation: BottomTabNavigationProp<MainTabParamList, "Feed">;
+};
+
+interface Post {
+  id:          string;
+  user:        string;
+  role:        string;
+  avatar:      string;
+  url:         string;
+  description: string;
+  likes:       number;
+  liked:       boolean;
+}
+
+// ─── Dados mock ───────────────────────────────────────────────────────────────
+
+const MOCK_PHOTOS: Post[] = [
   {
     id: "1",
     user: "Joice Barbosa",
@@ -39,7 +62,6 @@ const MOCK_PHOTOS = [
     likes: 24,
     liked: false,
   },
-
   {
     id: "2",
     user: "Carlos Lima",
@@ -50,7 +72,6 @@ const MOCK_PHOTOS = [
     likes: 17,
     liked: false,
   },
-
   {
     id: "3",
     user: "Marina Souza",
@@ -63,296 +84,167 @@ const MOCK_PHOTOS = [
   },
 ];
 
-export default function FeedScreen({ navigation }: any) {
+// ─── Componente ───────────────────────────────────────────────────────────────
+
+export default function FeedScreen({ navigation }: FeedScreenProps) {
   const { width } = useWindowDimensions();
+  const { isMobile, isTablet, isDesktop } = useResponsive();
 
-  const {
-    isMobile,
-    isTablet,
-    isDesktop,
-  } = useResponsive();
-
-  const [posts, setPosts] = useState<any[]>([]);
-
-  const [loading, setLoading] = useState(false);
-
-  const [loadingMore, setLoadingMore] = useState(false);
-
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-
-  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
-
+  const [posts, setPosts]                       = useState<Post[]>([]);
+  const [loadingMore, setLoadingMore]           = useState(false);
+  const [selectedImage, setSelectedImage]       = useState<string | null>(null);
+  const [selectedPostId, setSelectedPostId]     = useState<string | null>(null);
   const [createPostVisible, setCreatePostVisible] = useState(false);
+  const [postText, setPostText]                 = useState("");
+  const [newImage, setNewImage]                 = useState<string | null>(null);
 
-  const [postText, setPostText] = useState("");
+  const likeAnimations = useRef<Record<string, Animated.Value>>({}).current;
 
-  const [newImage, setNewImage] = useState<string | null>(null);
-
-  const likeAnimations = useRef<{
-    [key: string]: Animated.Value;
-  }>({}).current;
+  // ── Inicializa posts ───────────────────────────────────────────────────────
 
   useEffect(() => {
-    initializePosts();
-  }, []);
-
-  const initializePosts = () => {
     const preparedPosts = MOCK_PHOTOS.map((post) => {
       likeAnimations[post.id] = new Animated.Value(1);
-
       return post;
     });
-
     setPosts(preparedPosts);
-  };
+  }, []);
 
-  // Define o tamanho da imagem para ser 1/3 da tela (grid)
-  // No PC, limitamos a largura máxima para não distorcer
+  // ── Layout responsivo ──────────────────────────────────────────────────────
 
-  const numColumns = isDesktop
-    ? 3
-    : isTablet
-    ? 2
-    : 1;
+  const numColumns = isDesktop ? 3 : isTablet ? 2 : 1;
 
-  const imageSize = isDesktop
-    ? 360
-    : isTablet
-    ? width * 0.42
-    : width - 32;
+  const imageSize = isDesktop ? 360 : isTablet ? width * 0.42 : width - 32;
+
+  // ── Adicionar foto ─────────────────────────────────────────────────────────
 
   const handleAddPhoto = async () => {
-    const permissionResult =
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-    if (permissionResult.granted === false) {
-      Alert.alert(
-        "Permissão necessária",
-        "Você precisa permitir o acesso à galeria."
-      );
-
+    if (!granted) {
+      Alert.alert("Permissão necessária", "Você precisa permitir o acesso à galeria.");
       return;
     }
 
-    const result =
-      await ImagePicker.launchImageLibraryAsync({
-        mediaTypes:
-          ImagePicker.MediaTypeOptions.Images,
-
-        allowsEditing: true,
-
-        quality: 0.7,
-      });
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.7,
+    });
 
     if (!result.canceled) {
       setNewImage(result.assets[0].uri);
     }
   };
 
-  const handleCreatePost = async () => {
-    if (!postText && !newImage) {
-      Alert.alert(
-        "Erro",
-        "Adicione um texto ou imagem."
-      );
+  // ── Criar post ─────────────────────────────────────────────────────────────
 
+  const handleCreatePost = () => {
+    if (!postText && !newImage) {
+      Alert.alert("Erro", "Adicione um texto ou imagem.");
       return;
     }
 
-    const newPost = {
-      id: Date.now().toString(),
-
-      user: "Joice Barbosa",
-
-      role: "React Native Developer",
-
-      avatar:
-        "https://i.pravatar.cc/150?img=32",
-
-      url:
-        newImage ||
-        "https://picsum.photos/800/800",
-
+    const newPost: Post = {
+      id:          Date.now().toString(),
+      user:        "Joice Barbosa",
+      role:        "React Native Developer",
+      avatar:      "https://i.pravatar.cc/150?img=32",
+      url:         newImage || "https://picsum.photos/800/800",
       description: postText,
-
-      likes: 0,
-
-      liked: false,
+      likes:       0,
+      liked:       false,
     };
 
-    likeAnimations[newPost.id] =
-      new Animated.Value(1);
+    likeAnimations[newPost.id] = new Animated.Value(1);
 
     setPosts((prev) => [newPost, ...prev]);
-
     setPostText("");
-
     setNewImage(null);
-
     setCreatePostVisible(false);
   };
 
+  // ── Like ───────────────────────────────────────────────────────────────────
+
   const handleLike = (id: string) => {
     Animated.sequence([
-      Animated.timing(likeAnimations[id], {
-        toValue: 1.3,
-
-        duration: 120,
-
-        useNativeDriver: true,
-      }),
-
-      Animated.timing(likeAnimations[id], {
-        toValue: 1,
-
-        duration: 120,
-
-        useNativeDriver: true,
-      }),
+      Animated.timing(likeAnimations[id], { toValue: 1.3, duration: 120, useNativeDriver: true }),
+      Animated.timing(likeAnimations[id], { toValue: 1,   duration: 120, useNativeDriver: true }),
     ]).start();
 
     setPosts((prev) =>
       prev.map((post) =>
         post.id === id
-          ? {
-              ...post,
-
-              liked: !post.liked,
-
-              likes: post.liked
-                ? post.likes - 1
-                : post.likes + 1,
-            }
+          ? { ...post, liked: !post.liked, likes: post.liked ? post.likes - 1 : post.likes + 1 }
           : post
       )
     );
   };
 
+  // ── Infinite scroll ────────────────────────────────────────────────────────
+
   const handleInfiniteScroll = () => {
     if (loadingMore) return;
-
     setLoadingMore(true);
 
     setTimeout(() => {
-      const morePosts = MOCK_PHOTOS.map(
-        (post, index) => ({
-          ...post,
-
-          id: `${post.id}-${Date.now()}-${index}`,
-        })
-      );
-
-      morePosts.forEach((post) => {
-        likeAnimations[post.id] =
-          new Animated.Value(1);
+      const morePosts = MOCK_PHOTOS.map((post, index) => {
+        const newId = `${post.id}-${Date.now()}-${index}`;
+        likeAnimations[newId] = new Animated.Value(1);
+        return { ...post, id: newId };
       });
 
-      setPosts((prev) => [
-        ...prev,
-        ...morePosts,
-      ]);
-
+      setPosts((prev) => [...prev, ...morePosts]);
       setLoadingMore(false);
     }, 1500);
   };
 
-  const handleDelete = async () => {
-    Alert.alert(
-      "Apagar Foto",
-      "Deseja realmente remover esta foto?",
-      [
-        {
-          text: "Cancelar",
+  // ── Deletar post ───────────────────────────────────────────────────────────
 
-          style: "cancel",
+  const handleDelete = () => {
+    Alert.alert("Apagar Foto", "Deseja realmente remover esta foto?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Apagar",
+        style: "destructive",
+        onPress: () => {
+          setPosts((prev) => prev.filter((p) => p.id !== selectedPostId));
+          setSelectedImage(null);
         },
-
-        {
-          text: "Apagar",
-
-          style: "destructive",
-
-          onPress: () => {
-            setPosts((prev) =>
-              prev.filter(
-                (p) => p.id !== selectedPostId
-              )
-            );
-
-            setSelectedImage(null);
-          },
-        },
-      ]
-    );
+      },
+    ]);
   };
 
+  // ─── Render ───────────────────────────────────────────────────────────────
+
   return (
-    <LinearGradient
-      colors={["#020B1D", "#07152B"]}
-      style={styles.container}
-    >
+    <LinearGradient colors={["#020B1D", "#07152B"]} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        {/* HEADER */}
 
-        <View
-          style={[
-            styles.header,
-            {
-              paddingHorizontal: isMobile
-                ? 18
-                : 28,
-            },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons
-              name="arrow-back"
-              size={28}
-              color="#4DA6FF"
-            />
-          </TouchableOpacity>
+        {/* ── HEADER ────────────────────────────────────────────────────── */}
 
+        <View style={[styles.header, { paddingHorizontal: isMobile ? 18 : 28 }]}>
+          {/* Logo centralizada — sem botão voltar (agora é uma aba) */}
           <Image
             source={require("../assets/logo.png")}
-            style={{
-              width: isMobile ? 40 : 48,
-              height: isMobile ? 40 : 48,
-              resizeMode: "contain",
-            }}
+            style={{ width: isMobile ? 40 : 48, height: isMobile ? 40 : 48, resizeMode: "contain" }}
           />
 
-          <TouchableOpacity
-            style={styles.postButton}
-            onPress={() =>
-              setCreatePostVisible(true)
-            }
-          >
-            <Ionicons
-              name="add-circle"
-              size={34}
-              color="#3B82F6"
-            />
+          <Text style={styles.headerTitle}>Feed</Text>
+
+          <TouchableOpacity style={styles.postButton} onPress={() => setCreatePostVisible(true)}>
+            <Ionicons name="add-circle" size={34} color="#3B82F6" />
           </TouchableOpacity>
         </View>
 
-        {/* FEED */}
+        {/* ── FEED ──────────────────────────────────────────────────────── */}
 
         {posts.length === 0 ? (
           <View style={styles.skeletonContainer}>
             {[1, 2, 3].map((item) => (
-              <View
-                key={item}
-                style={styles.skeletonCard}
-              >
-                <View
-                  style={styles.skeletonAvatar}
-                />
-
-                <View
-                  style={styles.skeletonImage}
-                />
+              <View key={item} style={styles.skeletonCard}>
+                <View style={styles.skeletonAvatar} />
+                <View style={styles.skeletonImage} />
               </View>
             ))}
           </View>
@@ -365,218 +257,80 @@ export default function FeedScreen({ navigation }: any) {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{
               padding: isMobile ? 16 : 22,
-              paddingBottom: 120,
+              paddingBottom: 100, // espaço para a tab bar
             }}
             columnWrapperStyle={
-              !isMobile
-                ? {
-                    justifyContent:
-                      "space-between",
-
-                    marginBottom: 22,
-                  }
-                : undefined
+              !isMobile ? { justifyContent: "space-between", marginBottom: 22 } : undefined
             }
-            onEndReached={
-              handleInfiniteScroll
-            }
+            onEndReached={handleInfiniteScroll}
             onEndReachedThreshold={0.4}
             ListFooterComponent={
-              loadingMore ? (
-                <ActivityIndicator
-                  size="large"
-                  color="#3B82F6"
-                  style={{
-                    marginVertical: 20,
-                  }}
-                />
-              ) : null
+              loadingMore
+                ? <ActivityIndicator size="large" color="#3B82F6" style={{ marginVertical: 20 }} />
+                : null
             }
             renderItem={({ item }) => (
-              <View
-                style={[
-                  styles.postCard,
-                  {
-                    width: imageSize,
-                  },
-                ]}
-              >
+              <View style={[styles.postCard, { width: imageSize }]}>
+
                 {/* USER */}
-
                 <View style={styles.postHeader}>
-                  <View
-                    style={styles.userInfo}
-                  >
-                    <Image
-                      source={{
-                        uri: item.avatar,
-                      }}
-                      style={styles.avatar}
-                    />
-
+                  <View style={styles.userInfo}>
+                    <Image source={{ uri: item.avatar }} style={styles.avatar} />
                     <View>
-                      <Text
-                        style={
-                          styles.userName
-                        }
-                      >
-                        {item.user}
-                      </Text>
-
-                      <Text
-                        style={
-                          styles.userRole
-                        }
-                      >
-                        {item.role}
-                      </Text>
+                      <Text style={styles.userName}>{item.user}</Text>
+                      <Text style={styles.userRole}>{item.role}</Text>
                     </View>
                   </View>
-
-                  <Ionicons
-                    name="ellipsis-horizontal"
-                    size={20}
-                    color="#fff"
-                  />
+                  <Ionicons name="ellipsis-horizontal" size={20} color="#fff" />
                 </View>
 
                 {/* DESCRIPTION */}
-
-                <Text
-                  style={styles.description}
-                >
-                  {item.description}
-                </Text>
+                <Text style={styles.description}>{item.description}</Text>
 
                 {/* IMAGE */}
-
                 <TouchableOpacity
                   activeOpacity={0.9}
-                  onPress={() => {
-                    setSelectedImage(
-                      item.url
-                    );
-
-                    setSelectedPostId(
-                      item.id
-                    );
-                  }}
+                  onPress={() => { setSelectedImage(item.url); setSelectedPostId(item.id); }}
                 >
                   <Image
-                    source={{
-                      uri: item.url,
-                    }}
-                    style={[
-                      styles.postImage,
-                      {
-                        height: isMobile
-                          ? 300
-                          : 360,
-                      },
-                    ]}
+                    source={{ uri: item.url }}
+                    style={[styles.postImage, { height: isMobile ? 300 : 360 }]}
                   />
                 </TouchableOpacity>
 
                 {/* ACTIONS */}
-
                 <View style={styles.actions}>
-                  <TouchableOpacity
-                    style={
-                      styles.actionButton
-                    }
-                    onPress={() =>
-                      handleLike(item.id)
-                    }
-                  >
-                    <Animated.View
-                      style={{
-                        transform: [
-                          {
-                            scale:
-                              likeAnimations[
-                                item.id
-                              ] ||
-                              new Animated.Value(
-                                1
-                              ),
-                          },
-                        ],
-                      }}
-                    >
+                  <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(item.id)}>
+                    <Animated.View style={{ transform: [{ scale: likeAnimations[item.id] || new Animated.Value(1) }] }}>
                       <Ionicons
-                        name={
-                          item.liked
-                            ? "heart"
-                            : "heart-outline"
-                        }
+                        name={item.liked ? "heart" : "heart-outline"}
                         size={24}
-                        color={
-                          item.liked
-                            ? "#ff4d6d"
-                            : "#fff"
-                        }
+                        color={item.liked ? "#ff4d6d" : "#fff"}
                       />
                     </Animated.View>
-
-                    <Text
-                      style={
-                        styles.actionText
-                      }
-                    >
-                      {item.likes}
-                    </Text>
+                    <Text style={styles.actionText}>{item.likes}</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={
-                      styles.actionButton
-                    }
-                  >
-                    <Ionicons
-                      name="chatbubble-outline"
-                      size={22}
-                      color="#fff"
-                    />
+                  <TouchableOpacity style={styles.actionButton}>
+                    <Ionicons name="chatbubble-outline" size={22} color="#fff" />
                   </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={
-                      styles.actionButton
-                    }
-                  >
-                    <Ionicons
-                      name="share-social-outline"
-                      size={22}
-                      color="#fff"
-                    />
+                  <TouchableOpacity style={styles.actionButton}>
+                    <Ionicons name="share-social-outline" size={22} color="#fff" />
                   </TouchableOpacity>
                 </View>
+
               </View>
             )}
           />
         )}
 
-        {/* MODAL CREATE POST */}
+        {/* ── MODAL CRIAR POST ──────────────────────────────────────────── */}
 
-        <Modal
-          visible={createPostVisible}
-          animationType="slide"
-          transparent
-        >
+        <Modal visible={createPostVisible} animationType="slide" transparent>
           <View style={styles.modalOverlay}>
-            <View
-              style={[
-                styles.createPostModal,
-                {
-                  width: isMobile
-                    ? "100%"
-                    : 600,
-                },
-              ]}
-            >
-              <Text style={styles.modalTitle}>
-                Criar publicação
-              </Text>
+            <View style={[styles.createPostModal, { width: isMobile ? "100%" : 600 }]}>
+              <Text style={styles.modalTitle}>Criar publicação</Text>
 
               <TextInput
                 placeholder="Compartilhe algo..."
@@ -588,139 +342,62 @@ export default function FeedScreen({ navigation }: any) {
               />
 
               {newImage && (
-                <Image
-                  source={{ uri: newImage }}
-                  style={
-                    styles.previewImage
-                  }
-                />
+                <Image source={{ uri: newImage }} style={styles.previewImage} />
               )}
 
-              <View
-                style={styles.modalActions}
-              >
-                <TouchableOpacity
-                  style={
-                    styles.secondaryButton
-                  }
-                  onPress={handleAddPhoto}
-                >
-                  <Ionicons
-                    name="image-outline"
-                    size={22}
-                    color="#fff"
-                  />
-
-                  <Text
-                    style={
-                      styles.secondaryText
-                    }
-                  >
-                    Imagem
-                  </Text>
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.secondaryButton} onPress={handleAddPhoto}>
+                  <Ionicons name="image-outline" size={22} color="#fff" />
+                  <Text style={styles.secondaryText}>Imagem</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={
-                    styles.publishButton
-                  }
-                  onPress={
-                    handleCreatePost
-                  }
-                >
-                  <Text
-                    style={
-                      styles.publishText
-                    }
-                  >
-                    Publicar
-                  </Text>
+                <TouchableOpacity style={styles.publishButton} onPress={handleCreatePost}>
+                  <Text style={styles.publishText}>Publicar</Text>
                 </TouchableOpacity>
               </View>
 
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() =>
-                  setCreatePostVisible(
-                    false
-                  )
-                }
-              >
-                <Ionicons
-                  name="close"
-                  size={30}
-                  color="#fff"
-                />
+              <TouchableOpacity style={styles.closeButton} onPress={() => setCreatePostVisible(false)}>
+                <Ionicons name="close" size={30} color="#fff" />
               </TouchableOpacity>
             </View>
           </View>
         </Modal>
 
-        {/* MODAL FULLSCREEN */}
+        {/* ── MODAL FULLSCREEN ──────────────────────────────────────────── */}
 
-        <Modal
-          visible={!!selectedImage}
-          transparent
-          animationType="fade"
-        >
-          <View
-            style={styles.modalBackground}
-          >
-            <TouchableOpacity
-              style={styles.closeModal}
-              onPress={() =>
-                setSelectedImage(null)
-              }
-            >
-              <Ionicons
-                name="close"
-                size={35}
-                color="#fff"
-              />
+        <Modal visible={!!selectedImage} transparent animationType="fade">
+          <View style={styles.modalBackground}>
+            <TouchableOpacity style={styles.closeModal} onPress={() => setSelectedImage(null)}>
+              <Ionicons name="close" size={35} color="#fff" />
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={handleDelete}
-            >
-              <Ionicons
-                name="trash-outline"
-                size={28}
-                color="#ff4d4d"
-              />
+            <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+              <Ionicons name="trash-outline" size={28} color="#ff4d4d" />
             </TouchableOpacity>
 
             {selectedImage && (
-              <Image
-                source={{
-                  uri: selectedImage,
-                }}
-                style={styles.fullImage}
-                resizeMode="contain"
-              />
+              <Image source={{ uri: selectedImage }} style={styles.fullImage} resizeMode="contain" />
             )}
           </View>
         </Modal>
+
       </SafeAreaView>
     </LinearGradient>
   );
 }
 
+// ─── Estilos ──────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-
   safeArea: {
     flex: 1,
-
     alignSelf: "center",
-
     width: "100%",
-
     maxWidth: 1400,
   },
-
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -731,308 +408,187 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: "rgba(255,255,255,0.1)",
   },
-
+  headerTitle: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "700",
+  },
   postButton: {
     padding: 5,
   },
-
   postCard: {
-    backgroundColor:
-      "rgba(255,255,255,0.04)",
-
+    backgroundColor: "rgba(255,255,255,0.04)",
     borderRadius: 22,
-
     overflow: "hidden",
-
     marginBottom: 20,
-
     borderWidth: 1,
-
-    borderColor:
-      "rgba(255,255,255,0.06)",
+    borderColor: "rgba(255,255,255,0.06)",
   },
-
   postHeader: {
     flexDirection: "row",
-
     justifyContent: "space-between",
-
     alignItems: "center",
-
     padding: 14,
   },
-
   userInfo: {
     flexDirection: "row",
-
     alignItems: "center",
   },
-
   avatar: {
     width: 46,
-
     height: 46,
-
     borderRadius: 999,
-
     marginRight: 12,
   },
-
   userName: {
     color: "#fff",
-
     fontSize: 15,
-
     fontWeight: "700",
   },
-
   userRole: {
     color: "#8A94A6",
-
     fontSize: 13,
-
     marginTop: 2,
   },
-
   description: {
     color: "#fff",
-
     fontSize: 15,
-
     lineHeight: 22,
-
     paddingHorizontal: 14,
-
     marginBottom: 12,
   },
-
   postImage: {
     width: "100%",
   },
-
   actions: {
     flexDirection: "row",
-
     alignItems: "center",
-
     paddingHorizontal: 14,
-
     paddingVertical: 14,
-
     gap: 20,
   },
-
   actionButton: {
     flexDirection: "row",
-
     alignItems: "center",
   },
-
   actionText: {
     color: "#fff",
-
     marginLeft: 6,
-
     fontWeight: "600",
   },
-
   modalBackground: {
     flex: 1,
-
     backgroundColor: "black",
-
     justifyContent: "center",
-
     alignItems: "center",
   },
-
   fullImage: {
     width: "100%",
-
     height: "80%",
   },
-
   closeModal: {
     position: "absolute",
-
     top: 50,
-
     right: 20,
-
     zIndex: 10,
-
     padding: 10,
-
-    backgroundColor:
-      "rgba(0,0,0,0.5)",
-
+    backgroundColor: "rgba(0,0,0,0.5)",
     borderRadius: 25,
   },
-
   deleteButton: {
     position: "absolute",
-
     bottom: 50,
-
     zIndex: 10,
-
     padding: 15,
-
-    backgroundColor:
-      "rgba(255,255,255,0.1)",
-
+    backgroundColor: "rgba(255,255,255,0.1)",
     borderRadius: 30,
   },
-
   modalOverlay: {
     flex: 1,
-
-    backgroundColor:
-      "rgba(0,0,0,0.6)",
-
+    backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "center",
-
     alignItems: "center",
-
     padding: 20,
   },
-
   createPostModal: {
     backgroundColor: "#081228",
-
     borderRadius: 26,
-
     padding: 22,
   },
-
   modalTitle: {
     color: "#fff",
-
     fontSize: 22,
-
     fontWeight: "800",
-
     marginBottom: 20,
   },
-
   input: {
-    backgroundColor:
-      "rgba(255,255,255,0.05)",
-
+    backgroundColor: "rgba(255,255,255,0.05)",
     borderRadius: 18,
-
     padding: 18,
-
     color: "#fff",
-
     minHeight: 140,
-
     textAlignVertical: "top",
-
     fontSize: 16,
   },
-
   previewImage: {
     width: "100%",
-
     height: 220,
-
     borderRadius: 18,
-
     marginTop: 18,
   },
-
   modalActions: {
     flexDirection: "row",
-
     justifyContent: "space-between",
-
     marginTop: 20,
   },
-
   secondaryButton: {
     flexDirection: "row",
-
     alignItems: "center",
-
-    backgroundColor:
-      "rgba(255,255,255,0.08)",
-
+    backgroundColor: "rgba(255,255,255,0.08)",
     paddingHorizontal: 18,
-
     paddingVertical: 14,
-
     borderRadius: 16,
   },
-
   secondaryText: {
     color: "#fff",
-
     fontWeight: "700",
-
     marginLeft: 8,
   },
-
   publishButton: {
     backgroundColor: "#2563EB",
-
     paddingHorizontal: 26,
-
     paddingVertical: 14,
-
     borderRadius: 16,
   },
-
   publishText: {
     color: "#fff",
-
     fontWeight: "800",
-
     fontSize: 15,
   },
-
   closeButton: {
     position: "absolute",
-
     top: 18,
-
     right: 18,
   },
-
   skeletonContainer: {
     padding: 16,
   },
-
   skeletonCard: {
-    backgroundColor:
-      "rgba(255,255,255,0.04)",
-
+    backgroundColor: "rgba(255,255,255,0.04)",
     borderRadius: 22,
-
     marginBottom: 18,
-
     overflow: "hidden",
   },
-
   skeletonAvatar: {
     width: 46,
-
     height: 46,
-
     borderRadius: 999,
-
-    backgroundColor:
-      "rgba(255,255,255,0.08)",
-
+    backgroundColor: "rgba(255,255,255,0.08)",
     margin: 16,
   },
-
   skeletonImage: {
     width: "100%",
-
     height: 300,
-
-    backgroundColor:
-      "rgba(255,255,255,0.06)",
+    backgroundColor: "rgba(255,255,255,0.06)",
   },
 });

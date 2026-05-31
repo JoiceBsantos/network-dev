@@ -4,7 +4,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const USER_ID_KEY = '@network_dev_UserId';
 
 export async function register(userData: any) {
-  // O endpoint correto é /users/register
   const response = await api.post('/users/register', userData);
   if (response.data.userId) {
     await saveUserId(response.data.userId.toString());
@@ -13,24 +12,41 @@ export async function register(userData: any) {
 }
 
 export async function login(email: string, password: string) {
-  // LÓGICA DE TESTE LOCAL (SEM API)
+  // ── Credencial de teste local ──────────────────────────────────────────────
   if (email === 'teste@email.com' && password === '123456') {
     const mockUser = {
-      userId: 999,
-      name: "Usuário Teste",
-      email: "teste@email.com",
-      message: "Login de teste realizado"
+      userId:  999,
+      name:    "Usuário Teste",
+      email:   "teste@email.com",
+      message: "Login de teste realizado",
     };
     await saveUserId(mockUser.userId.toString());
     return mockUser;
   }
 
-  // O endpoint correto é /users/login
-  const response = await api.post('/users/login', { email, password });
-  if (response.data.userId) {
-    await saveUserId(response.data.userId.toString());
+  // ── Senha errada para o email de teste ────────────────────────────────────
+  if (email === 'teste@email.com' && password !== '123456') {
+    throw new Error('Senha incorreta');
   }
-  return response.data;
+
+  // ── API real ───────────────────────────────────────────────────────────────
+  try {
+    const response = await api.post('/users/login', { email, password });
+
+    if (!response.data || !response.data.userId) {
+      throw new Error('Credenciais inválidas');
+    }
+
+    await saveUserId(response.data.userId.toString());
+    return response.data;
+  } catch (error: any) {
+    // Garante que qualquer falha da API propaga o erro para o LoginScreen
+    const message =
+      error?.response?.data?.message ||
+      error?.message ||
+      'Email ou senha incorretos';
+    throw new Error(message);
+  }
 }
 
 async function saveUserId(id: string) {
