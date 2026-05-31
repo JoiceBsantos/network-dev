@@ -7,7 +7,7 @@ import { Platform } from 'react-native';
 
 const baseURL = Platform.OS === 'web'
   ? 'http://localhost:8080/api'
-  : 'http://10.173.27.34:8080/api';
+  : 'http://192.168.15.200:8080/api';
 
 export const api = axios.create({
   baseURL,
