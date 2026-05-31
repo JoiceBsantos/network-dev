@@ -14,7 +14,8 @@ import {
 } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";   // ← useCallback adicionado
+import { useFocusEffect } from "@react-navigation/native";   // ← BUG 3 FIX: import
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { api } from "../services/api";
@@ -45,8 +46,6 @@ function showAlert(title: string, message: string) {
     Alert.alert(title, message);
   }
 }
-
-
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
@@ -108,10 +107,22 @@ export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
 
   // ─── Carrega dados ───────────────────────────────────────────────────────────
 
+  const [connectionCount, setConnectionCount] = useState(0);
+
+  // BUG 3 FIX: useEffect carrega apenas perfil e conexões (dados que não mudam
+  // com frequência). Os posts são carregados pelo useFocusEffect abaixo.
   useEffect(() => {
     loadUserData();
-    loadUserPosts();
+    loadConnectionCount();
   }, []);
+
+  // BUG 3 FIX: useFocusEffect dispara toda vez que a aba Perfil recebe foco,
+  // garantindo que posts criados no Feed apareçam aqui sem reiniciar o app.
+  useFocusEffect(
+    useCallback(() => {
+      loadUserPosts();
+    }, [])
+  );
 
   async function loadUserData() {
     try {
@@ -131,6 +142,19 @@ export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
     }
   }
 
+  // ─── Contagem de conexões ────────────────────────────────────────────────────
+
+  async function loadConnectionCount() {
+    try {
+      const id = await getStoredUserId();
+      if (!id) return;
+      const response = await api.get(`/connections/count/${id}`);
+      setConnectionCount(response.data.count || 0);
+    } catch (error) {
+      console.log("Erro ao carregar conexões:", error);
+    }
+  }
+
   // ─── Posts do usuário ────────────────────────────────────────────────────────
 
   async function loadUserPosts() {
@@ -141,7 +165,6 @@ export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
         params: { page: 0, size: 50, sort: "createdAt,desc" },
       });
       const allPosts = response.data.content || [];
-      // Filtra só os posts do usuário logado
       const userPosts = allPosts
         .filter((p: any) => p.userId === Number(id))
         .map((p: any) => ({
@@ -167,28 +190,40 @@ export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
   }
 
   // ─── Deletar post ────────────────────────────────────────────────────────────
+  // BUG 2 FIX: antes só filtrava o estado local. Agora chama api.delete()
+  // e só remove do estado após confirmação da API.
 
-  function handleDeletePost(postId: string) {
-    if (Platform.OS === "web") {
-      const confirm = (globalThis as any).confirm("Deseja excluir esta publicação?");
-      if (confirm) {
+  async function handleDeletePost(postId: string) {
+    const doDelete = async () => {
+      try {
+        await api.delete(`/posts/${postId}`);
+        // Remove localmente apenas após sucesso na API
         setMyPosts((prev) => prev.filter((p) => p.id !== postId));
         setSelectedPost(null);
+      } catch (error: any) {
+        const status = error?.response?.status;
+        if (status === 404) {
+          // Post já não existe no banco — remove do estado mesmo assim
+          setMyPosts((prev) => prev.filter((p) => p.id !== postId));
+          setSelectedPost(null);
+        } else if (status === 403) {
+          showAlert("Erro", "Você não tem permissão para excluir este post.");
+        } else {
+          showAlert("Erro", "Não foi possível excluir. Tente novamente.");
+        }
       }
+    };
+
+    if (Platform.OS === "web") {
+      const confirmed = (globalThis as any).confirm("Deseja excluir esta publicação?");
+      if (confirmed) await doDelete();
     } else {
       Alert.alert(
         "Excluir publicação",
         "Deseja realmente excluir esta publicação?",
         [
           { text: "Cancelar", style: "cancel" },
-          {
-            text: "Excluir",
-            style: "destructive",
-            onPress: () => {
-              setMyPosts((prev) => prev.filter((p) => p.id !== postId));
-              setSelectedPost(null);
-            },
-          },
+          { text: "Excluir", style: "destructive", onPress: doDelete },
         ]
       );
     }
@@ -258,6 +293,7 @@ export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
       formData.append("file", { uri, type: "image/jpeg", name: "avatar.jpg" } as any);
       await api.post(`/users/${id}/upload-profile-image`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
+        transformRequest: (data) => data, // preserva o boundary do FormData
       });
       showAlert("Sucesso", "Foto de perfil atualizada!");
       loadUserData();
@@ -350,22 +386,17 @@ export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
             {!isEditing && (
               <View style={styles.statsRow}>
 
-                {/* Conexões */}
                 <TouchableOpacity
                   style={styles.statItem}
                   onPress={() => navigation.navigate("Connections")}
                 >
-                  <Text style={styles.statNumber}>24</Text>
+                  <Text style={styles.statNumber}>{connectionCount}</Text>
                   <Text style={styles.statLabel}>Conexões</Text>
                 </TouchableOpacity>
 
                 <View style={styles.statDivider} />
 
-                {/* Posts — rola até a seção de posts */}
-                <TouchableOpacity
-                  style={styles.statItem}
-                  onPress={() => {}}
-                >
+                <TouchableOpacity style={styles.statItem} onPress={() => {}}>
                   <Text style={styles.statNumber}>{myPosts.length}</Text>
                   <Text style={styles.statLabel}>Posts</Text>
                 </TouchableOpacity>
@@ -428,29 +459,26 @@ export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
                     <Text style={styles.postsSectionTitle}>Minhas Publicações</Text>
                   </View>
 
-                  {/* Grid de posts */}
-                  <View style={styles.postsGrid}>
-                    {myPosts.map((post) => (
-                      <TouchableOpacity
-                        key={post.id}
-                        onPress={() => setSelectedPost(post)}
-                        activeOpacity={0.85}
-                        style={[
-                          styles.postThumb,
-                          { width: postSize, height: postSize },
-                        ]}
-                      >
-                        <Image
-                          source={{ uri: post.url }}
-                          style={styles.postThumbImage}
-                        />
-                        <View style={styles.postThumbOverlay}>
-                          <Ionicons name="heart" size={12} color="#fff" />
-                          <Text style={styles.postThumbLikes}>{post.likes}</Text>
-                        </View>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                  {loadingPosts ? (
+                    <ActivityIndicator color="#4DA6FF" style={{ marginTop: 20 }} />
+                  ) : (
+                    <View style={styles.postsGrid}>
+                      {myPosts.map((post) => (
+                        <TouchableOpacity
+                          key={post.id}
+                          onPress={() => setSelectedPost(post)}
+                          activeOpacity={0.85}
+                          style={[styles.postThumb, { width: postSize, height: postSize }]}
+                        >
+                          <Image source={{ uri: post.url }} style={styles.postThumbImage} />
+                          <View style={styles.postThumbOverlay}>
+                            <Ionicons name="heart" size={12} color="#fff" />
+                            <Text style={styles.postThumbLikes}>{post.likes}</Text>
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
                 </View>
 
               </>
@@ -550,11 +578,7 @@ export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
       </View>
 
       {/* ── MODAL POST FULLSCREEN ─────────────────────────────────────────── */}
-      <Modal
-        visible={!!selectedPost}
-        transparent
-        animationType="fade"
-      >
+      <Modal visible={!!selectedPost} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <TouchableOpacity
             style={styles.modalClose}
@@ -572,7 +596,6 @@ export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
               />
               <View style={styles.modalInfo}>
 
-                {/* Descrição ou campo de edição */}
                 {isEditingPost ? (
                   <TextInput
                     style={styles.editDescriptionInput}
@@ -587,13 +610,11 @@ export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
                 )}
 
                 <View style={styles.modalFooter}>
-                  {/* Curtidas */}
                   <View style={styles.modalLikes}>
                     <Ionicons name="heart" size={18} color="#ff4d6d" />
                     <Text style={styles.modalLikesText}>{selectedPost.likes} curtidas</Text>
                   </View>
 
-                  {/* Botões de ação */}
                   <View style={styles.modalActions}>
                     {isEditingPost ? (
                       <>
@@ -603,10 +624,7 @@ export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
                         >
                           <Text style={styles.cancelEditText}>Cancelar</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.saveEditButton}
-                          onPress={handleSaveEdit}
-                        >
+                        <TouchableOpacity style={styles.saveEditButton} onPress={handleSaveEdit}>
                           <Ionicons name="checkmark" size={16} color="#fff" />
                           <Text style={styles.saveEditText}>Salvar</Text>
                         </TouchableOpacity>
@@ -742,8 +760,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 
-  // ── Stats ────────────────────────────────────────────────────────────────
-
   statsRow: {
     flexDirection: "row",
     backgroundColor: "rgba(10,15,30,0.82)",
@@ -778,8 +794,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.08)",
     marginVertical: 14,
   },
-
-  // ── Info cards ───────────────────────────────────────────────────────────
 
   infoCard: {
     backgroundColor: "rgba(10,15,30,0.82)",
@@ -1025,8 +1039,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
   },
 
-  // ── Posts ────────────────────────────────────────────────────────────────
-
   postsSection: {
     marginTop: 8,
   },
@@ -1080,8 +1092,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "700",
   },
-
-  // ── Modal post ───────────────────────────────────────────────────────────
 
   modalOverlay: {
     flex: 1,

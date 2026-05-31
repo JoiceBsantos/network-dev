@@ -19,6 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "../services/api";
 import { getStoredUserId } from "../services/auth";
 import { useResponsive } from "../utils/responsive";
@@ -109,17 +110,18 @@ export default function FeedScreen({ navigation }: FeedScreenProps) {
             userMap[uid] = {
               name:   userRes.data.name   || "Usuário",
               avatar: userRes.data.profileImageUrl || "https://i.pravatar.cc/150?img=32",
-              role:   userRes.data.position || userRes.data.stack || "Dev",
+              role:   userRes.data.position || userRes.data.stack || "",
             };
           } catch {
-            userMap[uid] = { name: "Usuário", avatar: "https://i.pravatar.cc/150?img=32", role: "Dev" };
+            // Fallback de rede — nunca exibe "Você" ou "Dev" hardcoded
+            userMap[uid] = { name: "Usuário", avatar: "https://i.pravatar.cc/150?img=32", role: "" };
           }
         })
       );
 
       const mapped: Post[] = apiPosts.map((p) => {
         const id   = p.id.toString();
-        const user = userMap[p.userId] || { name: "Usuário", avatar: "https://i.pravatar.cc/150?img=32", role: "Dev" };
+        const user = userMap[p.userId] || { name: "Usuário", avatar: "https://i.pravatar.cc/150?img=32", role: "" };
         if (!likeAnimations[id]) {
           likeAnimations[id] = new Animated.Value(1);
         }
@@ -140,7 +142,6 @@ export default function FeedScreen({ navigation }: FeedScreenProps) {
       setPage(pageNum);
     } catch (error) {
       console.log("❌ Erro ao carregar feed:", error);
-      // Fallback para mock se API falhar
       if (reset) loadMock();
     } finally {
       setLoading(false);
@@ -150,9 +151,9 @@ export default function FeedScreen({ navigation }: FeedScreenProps) {
 
   function loadMock() {
     const mock: Post[] = [
-      { id: "m1", user: "Joice Barbosa", role: "React Native Developer", avatar: "https://i.pravatar.cc/150?img=32", url: "https://picsum.photos/id/1/800/800",  description: "Finalizando a Home responsiva 🚀", likes: 24, liked: false },
-      { id: "m2", user: "Adriel Pereira", role: "Backend Java",          avatar: "https://i.pravatar.cc/150?img=12", url: "https://picsum.photos/id/20/800/800", description: "Deploy concluído com sucesso 🔥",   likes: 17, liked: false },
-      { id: "m3", user: "Luiz Henrique", role: "Node.js + DevOps",       avatar: "https://i.pravatar.cc/150?img=53", url: "https://picsum.photos/id/30/800/800", description: "Novo protótipo no Figma ✨",        likes: 42, liked: false },
+      { id: "m1", user: "Joice Barbosa",  role: "React Native Developer", avatar: "https://i.pravatar.cc/150?img=32", url: "https://picsum.photos/id/1/800/800",  description: "Finalizando a Home responsiva 🚀", likes: 24, liked: false },
+      { id: "m2", user: "Adriel Pereira", role: "Backend Java",           avatar: "https://i.pravatar.cc/150?img=12", url: "https://picsum.photos/id/20/800/800", description: "Deploy concluído com sucesso 🔥",   likes: 17, liked: false },
+      { id: "m3", user: "Luiz Henrique",  role: "Node.js + DevOps",       avatar: "https://i.pravatar.cc/150?img=53", url: "https://picsum.photos/id/30/800/800", description: "Novo protótipo no Figma ✨",        likes: 42, liked: false },
     ];
     mock.forEach((p) => { likeAnimations[p.id] = new Animated.Value(1); });
     setPosts(mock);
@@ -180,6 +181,9 @@ export default function FeedScreen({ navigation }: FeedScreenProps) {
   };
 
   // ── Criar post ─────────────────────────────────────────────────────────────
+  // BUG 1 FIX: transformRequest: (data) => data impede o axios de reserializar
+  //            o FormData sem o boundary, que causava o 500 no Spring Boot.
+  // BUG 4 FIX: fallback usa nome real do AsyncStorage, nunca "Você"/"Dev".
 
   const handleCreatePost = async () => {
     if (!postText && !newImage) {
@@ -193,19 +197,28 @@ export default function FeedScreen({ navigation }: FeedScreenProps) {
       const userId = await getStoredUserId();
 
       if (newImage) {
-        // Post com imagem
+        // ── BUG 1 FIX ────────────────────────────────────────────────────────
+        const uriParts = newImage.split(".");
+        const ext      = uriParts[uriParts.length - 1]?.toLowerCase() || "jpg";
+        const mimeType = ext === "png" ? "image/png" : ext === "gif" ? "image/gif" : "image/jpeg";
+
         const formData = new FormData();
         formData.append("userId", userId || "1");
         formData.append("description", postText);
         formData.append("image", {
-          uri:  newImage,
-          type: "image/jpeg",
-          name: "post.jpg",
+          // iOS adiciona "file://" que o fetch não entende — removemos aqui
+          uri:  Platform.OS === "ios" ? newImage.replace("file://", "") : newImage,
+          type: mimeType,
+          name: `post_${Date.now()}.${ext}`,
         } as any);
 
+        // CRÍTICO: transformRequest: (data) => data impede o axios de converter
+        // o FormData para string, preservando o boundary do multipart.
         await api.post("/posts/create-with-image", formData, {
           headers: { "Content-Type": "multipart/form-data" },
+          transformRequest: (data) => data,
         });
+        // ─────────────────────────────────────────────────────────────────────
       } else {
         // Post só com texto
         await api.post("/posts", {
@@ -218,17 +231,41 @@ export default function FeedScreen({ navigation }: FeedScreenProps) {
       setPostText("");
       setNewImage(null);
       setCreatePostVisible(false);
-      // Recarrega o feed
       await loadFeed(0, true);
       showAlert("Sucesso", "Publicação criada! 🚀");
-    } catch (error) {
-      console.log("❌ Erro ao criar post:", error);
-      // Fallback local se API falhar
+    } catch (error: any) {
+      console.log("❌ Erro ao criar post:", error?.response?.data || error);
+
+      // ── BUG 1 FIX: não cria post fantasma em caso de 500 (erro do servidor)
+      if (error?.response?.status === 500) {
+        showAlert(
+          "Erro no servidor",
+          "Falha ao processar a imagem. Tente com uma foto menor (abaixo de 5 MB) ou sem imagem."
+        );
+        setPublishing(false);
+        return; // mantém o modal aberto para o usuário tentar novamente
+      }
+
+      // ── BUG 4 FIX: fallback local para erros de rede (sem conexão)
+      //    Busca o nome real salvo em AsyncStorage — nunca usa "Você"/"Dev"
+      let nomeReal   = "Usuário";
+      let roleReal   = "";
+      let avatarReal = "https://i.pravatar.cc/150?img=32";
+      try {
+        const userStr = await AsyncStorage.getItem("usuario");
+        if (userStr) {
+          const u    = JSON.parse(userStr);
+          nomeReal   = u.name  || u.nome  || "Usuário";
+          roleReal   = u.position || u.stack || "";
+          avatarReal = u.profileImageUrl || avatarReal;
+        }
+      } catch {}
+
       const newPost: Post = {
         id:          Date.now().toString(),
-        user:        "Você",
-        role:        "Dev",
-        avatar:      "https://i.pravatar.cc/150?img=32",
+        user:        nomeReal,   // ✅ nome real do usuário logado
+        role:        roleReal,   // ✅ cargo real, sem hardcode "Dev"
+        avatar:      avatarReal,
         url:         newImage || "https://picsum.photos/800/800",
         description: postText,
         likes:       0,

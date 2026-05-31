@@ -16,6 +16,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 import { logout, getStoredUserId } from "../services/auth";
+import { api } from "../services/api";
 
 import { Ionicons } from "@expo/vector-icons";
 
@@ -39,6 +40,7 @@ interface Developer {
   match:    string;
   image:    string;
   distance?: string;
+  userId?:  number;
 }
 
 // ─── Dados mock ───────────────────────────────────────────────────────────────
@@ -50,9 +52,9 @@ const DEV_IMAGES: Record<string, any> = {
 };
 
 const allDevelopers: Developer[] = [
-  { id: "1", name: "Joice Barbosa",    stack: "React Native",       match: "97%", image: "" },
-  { id: "2", name: "Adriel Pereira",   stack: "Java + Spring Boot",  match: "91%", image: "" },
-  { id: "3", name: "Luiz Henrique",    stack: "Node.js + DevOps",    match: "88%", image: "" },
+  { id: "1", name: "Joice Barbosa",    stack: "React Native",       match: "97%", image: "", userId: 3 },
+  { id: "2", name: "Adriel Pereira",   stack: "Java + Spring Boot",  match: "91%", image: "", userId: 4 },
+  { id: "3", name: "Luiz Henrique",    stack: "Node.js + DevOps",    match: "88%", image: "", userId: 2 },
 ];
 
 // ─── Componente ───────────────────────────────────────────────────────────────
@@ -63,11 +65,13 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const fadeAnim   = useRef(new Animated.Value(0)).current;
   const pulseAnim  = useRef(new Animated.Value(1)).current;
 
-  const [isSearching, setIsSearching] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
-  const [developers, setDevelopers]   = useState<Developer[]>([]);
-  const [foundCount, setFoundCount]   = useState(0);
-  const [userName]                    = useState("Desenvolvedor");
+  const [isSearching, setIsSearching]     = useState(false);
+  const [hasSearched, setHasSearched]     = useState(false);
+  const [developers, setDevelopers]       = useState<Developer[]>([]);
+  const [foundCount, setFoundCount]       = useState(0);
+  const [userName, setUserName]           = useState("Desenvolvedor");
+  const [pendingCount, setPendingCount]   = useState(0);
+  const [profileImage, setProfileImage]   = useState<string | null>(null);
 
   const { width, isMobile, isDesktop } = useResponsive();
 
@@ -83,7 +87,18 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   useEffect(() => {
     (async () => {
-      await getStoredUserId();
+      const id = await getStoredUserId();
+      if (id) {
+        try {
+          const [connRes, userRes] = await Promise.all([
+            api.get(`/connections/received/${id}`),
+            api.get(`/users/${id}`),
+          ]);
+          setPendingCount(connRes.data.length || 0);
+          if (userRes.data.name) setUserName(userRes.data.name.split(" ")[0]);
+          if (userRes.data.profileImageUrl) setProfileImage(userRes.data.profileImageUrl);
+        } catch {}
+      }
     })();
   }, []);
 
@@ -154,7 +169,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           >
             <Ionicons name="notifications-outline" size={24} color="#FFFFFF" />
             <View style={styles.bellBadge}>
-              <Text style={styles.bellBadgeText}>2</Text>
+              <Text style={styles.bellBadgeText}>{pendingCount}</Text>
             </View>
           </TouchableOpacity>
         )}
@@ -209,7 +224,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
                   <TouchableOpacity onPress={() => navigation.navigate("MyProfile")}>
                     <Image
-                      source={require("../assets/me.png")}
+                      source={profileImage ? { uri: profileImage } : require("../assets/me.png")}
                       style={[
                         styles.profileImage,
                         {
@@ -372,10 +387,11 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                     activeOpacity={0.92}
                     style={[styles.card, isDesktop && styles.cardDesktop, { width: isMobile ? "100%" : "48%" }]}
                     onPress={() => (navigation as any).navigate("Connection", {
-                      name:  item.name,
-                      stack: item.stack,
-                      match: item.match,
-                      image: item.name,
+                      name:   item.name,
+                      stack:  item.stack,
+                      match:  item.match,
+                      image:  item.name,
+                      userId: item.userId,
                     })}
                   >
                     <View style={[styles.cardLeft, { marginRight: width < 430 ? 0 : 16, marginBottom: width < 430 ? 12 : 0 }]}>
@@ -414,10 +430,11 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                       <TouchableOpacity
                         style={styles.connectButton}
                         onPress={() => (navigation as any).navigate("Connection", {
-                          name:  item.name,
-                          stack: item.stack,
-                          match: item.match,
-                          image: item.name,
+                          name:   item.name,
+                          stack:  item.stack,
+                          match:  item.match,
+                          image:  item.name,
+                          userId: item.userId,
                         })}
                       >
                         <Text style={styles.connectText}>Conectar</Text>

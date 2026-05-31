@@ -38,10 +38,17 @@ const DEV_IMAGES: Record<string, any> = {
   "Luiz Henrique":  require("../assets/luiz.png"),
 };
 
+const DEV_IMAGES_BY_ID: Record<number, any> = {
+  2: require("../assets/luiz.png"),
+  3: require("../assets/joice.png"),
+  4: require("../assets/adriel.png"),
+};
+
 export default function ConnectionScreen({ navigation, route }: ConnectionScreenProps) {
-  const name  = route.params?.name  ?? "Adriel Pereira";
-  const stack = route.params?.stack ?? "Java + Spring Boot";
-  const match = route.params?.match ?? "91%";
+  const name     = route.params?.name   ?? "Adriel Pereira";
+  const stack    = route.params?.stack  ?? "Java + Spring Boot";
+  const match    = route.params?.match  ?? "91%";
+  const receiverId = route.params?.userId ?? 4;
   const [showHandshake, setShowHandshake] = useState(false);
   const [showSuccess, setShowSuccess]     = useState(false);
 
@@ -67,14 +74,23 @@ export default function ConnectionScreen({ navigation, route }: ConnectionScreen
 
     try {
       const myId = await getStoredUserId();
+
+      // Registra log de proximidade BLE
       await api.post("/proximity/detect", {
         originUserId:   Number(myId),
-        detectedUserId: 3,
+        detectedUserId: receiverId,
         rssi:           -45,
         timestamp:      new Date().toISOString(),
-      });
+      }).catch(() => {});
+
+      // Envia solicitação de conexão real
+      await api.post("/connections/request", {
+        requesterId: Number(myId),
+        receiverId:  receiverId,
+      }).catch(() => {});
+
     } catch (e) {
-      console.log("Erro ao registrar log de proximidade", e);
+      console.log("Erro ao enviar solicitação:", e);
     }
 
     setTimeout(() => {
@@ -145,7 +161,7 @@ export default function ConnectionScreen({ navigation, route }: ConnectionScreen
                 {/* Dev detectado */}
                 <View style={styles.userContainer}>
                   <Image
-                    source={DEV_IMAGES[name]}
+                    source={DEV_IMAGES_BY_ID[receiverId] || DEV_IMAGES[name]}
                     style={[styles.avatar, { width: isMobile ? 92 : 130, height: isMobile ? 92 : 130, borderRadius: isMobile ? 46 : 65 }]}
                   />
                   <Text style={[styles.userName, { fontSize: isMobile ? 18 : 24 }]}>{name}</Text>

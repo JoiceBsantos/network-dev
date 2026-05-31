@@ -19,7 +19,7 @@ export type RootStackParamList = {
   Loading: undefined;
   Login: undefined;
   Main: undefined;
-  Connection: { name: string; stack: string; match: string; image: string };
+  Connection: { name: string; stack: string; match: string; image: string; userId?: number };
   CreateProfile: undefined;
 };
 

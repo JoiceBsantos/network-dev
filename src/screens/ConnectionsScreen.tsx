@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   StatusBar,
   Platform,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 
 import { LinearGradient } from "expo-linear-gradient";
@@ -17,6 +18,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { MainTabParamList } from "../navigation/AppNavigator";
 import { useResponsive } from "../utils/responsive";
+import { api } from "../services/api";
+import { getStoredUserId } from "../services/auth";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -25,10 +28,19 @@ type ConnectionsScreenProps = {
 };
 
 interface Connection {
-  id:     string;
-  name:   string;
-  stack:  string;
-  avatar: string;
+  id:      string;
+  name:    string;
+  stack:   string;
+  avatar:  string | null;
+  userId?: number;
+}
+
+interface ApiConnection {
+  id:          number;
+  requesterId: number;
+  receiverId:  number;
+  status:      string;
+  createdAt:   string;
 }
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
@@ -41,7 +53,7 @@ function showAlert(title: string, message: string) {
   }
 }
 
-// ─── Dados mock ───────────────────────────────────────────────────────────────
+// ─── Imagens locais por userId ───────────────────────────────────────────────
 
 const DEV_IMAGES: Record<string, any> = {
   "Joice Barbosa":  require("../assets/joice.png"),
@@ -49,40 +61,111 @@ const DEV_IMAGES: Record<string, any> = {
   "Luiz Henrique":  require("../assets/luiz.png"),
 };
 
-const MOCK_ACCEPTED: Connection[] = [
-  { id: "1", name: "Joice Barbosa",  stack: "React Native",       avatar: "" },
-];
-
-const MOCK_SENT: Connection[] = [
-  { id: "2", name: "Adriel Pereira", stack: "Java + Spring Boot", avatar: "" },
-];
-
-const MOCK_RECEIVED: Connection[] = [
-  { id: "3", name: "Luiz Henrique",  stack: "Node.js + DevOps",   avatar: "" },
-];
+const DEV_IMAGES_BY_ID: Record<number, any> = {
+  2: require("../assets/luiz.png"),
+  3: require("../assets/joice.png"),
+  4: require("../assets/adriel.png"),
+};
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
 export default function ConnectionsScreen({ navigation }: ConnectionsScreenProps) {
   const { isMobile, isDesktop } = useResponsive();
 
-  const [accepted, setAccepted]   = useState<Connection[]>(MOCK_ACCEPTED);
-  const [sent, setSent]           = useState<Connection[]>(MOCK_SENT);
-  const [received, setReceived]   = useState<Connection[]>(MOCK_RECEIVED);
+  const [accepted, setAccepted]   = useState<Connection[]>([]);
+  const [sent, setSent]           = useState<Connection[]>([]);
+  const [received, setReceived]   = useState<Connection[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [myUserId, setMyUserId]   = useState<number | null>(null);
+
+  // ── Carrega dados da API ───────────────────────────────────────────────────
+
+  useEffect(() => {
+    loadConnections();
+  }, []);
+
+  async function loadConnections() {
+    setLoading(true);
+    try {
+      const id = await getStoredUserId();
+      if (!id) return;
+      const uid = Number(id);
+      setMyUserId(uid);
+
+      const [receivedRes, sentRes, acceptedRes] = await Promise.all([
+        api.get(`/connections/received/${uid}`),
+        api.get(`/connections/sent/${uid}`),
+        api.get(`/connections/accepted/${uid}`),
+      ]);
+
+      setReceived(await mapConnections(receivedRes.data, uid));
+      setSent(await mapConnections(sentRes.data, uid));
+      setAccepted(await mapConnections(acceptedRes.data, uid));
+    } catch (error) {
+      console.log("Erro ao carregar conexões:", error);
+      // Fallback mock
+      setReceived([{ id: "3", name: "Luiz Henrique", stack: "Node.js + DevOps", avatar: null }]);
+      setSent([{ id: "2", name: "Adriel Pereira", stack: "Java + Spring Boot", avatar: null }]);
+      setAccepted([{ id: "1", name: "Joice Barbosa", stack: "React Native", avatar: null }]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function mapConnections(apiList: ApiConnection[], myId: number): Promise<Connection[]> {
+    return Promise.all(
+      apiList.map(async (conn) => {
+        const otherId = conn.requesterId === myId ? conn.receiverId : conn.requesterId;
+        try {
+          const userRes = await api.get(`/users/${otherId}`);
+          return {
+            id:       conn.id.toString(),
+            name:     userRes.data.name     || "Usuário",
+            stack:    userRes.data.position || userRes.data.stack || "Dev",
+            avatar:   userRes.data.profileImageUrl || null,
+            userId:   otherId,
+          };
+        } catch {
+          return { id: conn.id.toString(), name: "Usuário", stack: "Dev", avatar: null, userId: otherId };
+        }
+      })
+    );
+  }
+
+  function getAvatar(item: Connection) {
+    if (item.userId && DEV_IMAGES_BY_ID[item.userId]) return DEV_IMAGES_BY_ID[item.userId];
+    if (item.avatar) return { uri: item.avatar };
+    if (DEV_IMAGES[item.name]) return DEV_IMAGES[item.name];
+    return { uri: "https://i.pravatar.cc/150?img=32" };
+  }
 
   // ── Aceitar solicitação ────────────────────────────────────────────────────
 
-  function handleAccept(item: Connection) {
-    setAccepted((prev) => [...prev, item]);
-    setReceived((prev) => prev.filter((r) => r.id !== item.id));
-    showAlert("Conexão aceita! 🎉", `Você e ${item.name} agora estão conectados.`);
+  async function handleAccept(item: Connection) {
+    try {
+      await api.put(`/connections/${item.id}/accept`);
+      setAccepted((prev) => [...prev, item]);
+      setReceived((prev) => prev.filter((r) => r.id !== item.id));
+      showAlert("Conexão aceita! 🎉", `Você e ${item.name} agora estão conectados.`);
+    } catch {
+      // Fallback local
+      setAccepted((prev) => [...prev, item]);
+      setReceived((prev) => prev.filter((r) => r.id !== item.id));
+      showAlert("Conexão aceita! 🎉", `Você e ${item.name} agora estão conectados.`);
+    }
   }
 
   // ── Recusar solicitação ────────────────────────────────────────────────────
 
-  function handleDecline(item: Connection) {
-    setReceived((prev) => prev.filter((r) => r.id !== item.id));
-    showAlert("Solicitação recusada", `A solicitação de ${item.name} foi removida.`);
+  async function handleDecline(item: Connection) {
+    try {
+      await api.put(`/connections/${item.id}/decline`);
+      setReceived((prev) => prev.filter((r) => r.id !== item.id));
+      showAlert("Solicitação recusada", `A solicitação de ${item.name} foi removida.`);
+    } catch {
+      setReceived((prev) => prev.filter((r) => r.id !== item.id));
+      showAlert("Solicitação recusada", `A solicitação de ${item.name} foi removida.`);
+    }
   }
 
   // ─── Render ─────────────────────────────────────────────────────────────────
@@ -92,132 +175,129 @@ export default function ConnectionsScreen({ navigation }: ConnectionsScreenProps
       <SafeAreaView style={{ flex: 1 }}>
         <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
 
-        <ScrollView
-          contentContainerStyle={[
-            styles.scrollContent,
-            {
-              paddingHorizontal: isMobile ? 20 : 40,
-              maxWidth:          isDesktop ? 900 : "100%",
-              alignSelf:         "center",
-              width:             "100%",
-            },
-          ]}
-          showsVerticalScrollIndicator={false}
-        >
+        {loading ? (
+          <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+            <ActivityIndicator size="large" color="#3B82F6" />
+          </View>
+        ) : (
+          <ScrollView
+            contentContainerStyle={[
+              styles.scrollContent,
+              {
+                paddingHorizontal: isMobile ? 20 : 40,
+                maxWidth:          isDesktop ? 900 : "100%",
+                alignSelf:         "center",
+                width:             "100%",
+              },
+            ]}
+            showsVerticalScrollIndicator={false}
+          >
 
-          {/* ── HEADER ──────────────────────────────────────────────────── */}
-          <View style={styles.header}>
-            <Text style={[styles.title, { fontSize: isMobile ? 26 : 34 }]}>
-              Conexões
-            </Text>
-            <View style={styles.countBadge}>
-              <Text style={styles.countText}>
-                {accepted.length + sent.length + received.length}
+            {/* ── HEADER ──────────────────────────────────────────────────── */}
+            <View style={styles.header}>
+              <Text style={[styles.title, { fontSize: isMobile ? 26 : 34 }]}>
+                Conexões
               </Text>
-            </View>
-          </View>
-
-          {/* ── SOLICITAÇÕES RECEBIDAS ───────────────────────────────────── */}
-          {received.length > 0 && (
-            <>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="notifications" size={18} color="#F59E0B" style={styles.sectionIcon} />
-                <Text style={[styles.sectionTitle, { color: "#F59E0B" }]}>
-                  Solicitações recebidas
-                </Text>
-                <View style={styles.sectionBadge}>
-                  <Text style={styles.sectionBadgeText}>{received.length}</Text>
-                </View>
-              </View>
-
-              {received.map((item) => (
-                <View key={item.id} style={[styles.card, styles.cardReceived]}>
-                  <Image source={DEV_IMAGES[item.name]} style={styles.avatar} />
-
-                  <View style={styles.cardInfo}>
-                    <Text style={styles.name}>{item.name}</Text>
-                    <Text style={styles.stack}>{item.stack}</Text>
-                    <Text style={styles.requestLabel}>Quer se conectar com você 👋</Text>
-                  </View>
-
-                  <View style={styles.actionButtons}>
-                    <TouchableOpacity
-                      style={styles.acceptButton}
-                      onPress={() => handleAccept(item)}
-                    >
-                      <Ionicons name="checkmark" size={20} color="#fff" />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.declineButton}
-                      onPress={() => handleDecline(item)}
-                    >
-                      <Ionicons name="close" size={20} color="#fff" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
-            </>
-          )}
-
-          {/* ── CONEXÕES ACEITAS ─────────────────────────────────────────── */}
-          <View style={[styles.sectionHeader, { marginTop: received.length > 0 ? 24 : 0 }]}>
-            <Ionicons name="people" size={18} color="#3B82F6" style={styles.sectionIcon} />
-            <Text style={styles.sectionTitle}>Conexões aceitas</Text>
-          </View>
-
-          {accepted.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>Nenhuma conexão ainda</Text>
-            </View>
-          ) : (
-            accepted.map((item) => (
-              <View key={item.id} style={styles.card}>
-                <Image source={DEV_IMAGES[item.name]} style={styles.avatar} />
-
-                <View style={styles.cardInfo}>
-                  <Text style={styles.name}>{item.name}</Text>
-                  <Text style={styles.stack}>{item.stack}</Text>
-                </View>
-
-                <TouchableOpacity
-                  style={styles.profileButton}
-                  onPress={() => (navigation as any).navigate("Connection")}
-                >
-                  <Text style={styles.profileButtonText}>Perfil</Text>
-                </TouchableOpacity>
-              </View>
-            ))
-          )}
-
-          {/* ── ENVIADAS / AGUARDANDO ────────────────────────────────────── */}
-          {sent.length > 0 && (
-            <>
-              <View style={[styles.sectionHeader, { marginTop: 24 }]}>
-                <Ionicons name="time-outline" size={18} color="#94A3B8" style={styles.sectionIcon} />
-                <Text style={[styles.sectionTitle, { color: "#94A3B8" }]}>
-                  Aguardando resposta
+              <View style={styles.countBadge}>
+                <Text style={styles.countText}>
+                  {accepted.length + sent.length + received.length}
                 </Text>
               </View>
+            </View>
 
-              {sent.map((item) => (
-                <View key={item.id} style={[styles.card, styles.cardPending]}>
-                  <Image source={DEV_IMAGES[item.name]} style={styles.avatar} />
+            {/* ── SOLICITAÇÕES RECEBIDAS ───────────────────────────────────── */}
+            {received.length > 0 && (
+              <>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="notifications" size={18} color="#F59E0B" style={styles.sectionIcon} />
+                  <Text style={[styles.sectionTitle, { color: "#F59E0B" }]}>
+                    Solicitações recebidas
+                  </Text>
+                  <View style={styles.sectionBadge}>
+                    <Text style={styles.sectionBadgeText}>{received.length}</Text>
+                  </View>
+                </View>
 
+                {received.map((item) => (
+                  <View key={item.id} style={[styles.card, styles.cardReceived]}>
+                    <Image source={getAvatar(item)} style={styles.avatar} />
+                    <View style={styles.cardInfo}>
+                      <Text style={styles.name}>{item.name}</Text>
+                      <Text style={styles.stack}>{item.stack}</Text>
+                      <Text style={styles.requestLabel}>Quer se conectar com você 👋</Text>
+                    </View>
+                    <View style={styles.actionButtons}>
+                      <TouchableOpacity style={styles.acceptButton} onPress={() => handleAccept(item)}>
+                        <Ionicons name="checkmark" size={20} color="#fff" />
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.declineButton} onPress={() => handleDecline(item)}>
+                        <Ionicons name="close" size={20} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </>
+            )}
+
+            {/* ── CONEXÕES ACEITAS ─────────────────────────────────────────── */}
+            <View style={[styles.sectionHeader, { marginTop: received.length > 0 ? 24 : 0 }]}>
+              <Ionicons name="people" size={18} color="#3B82F6" style={styles.sectionIcon} />
+              <Text style={styles.sectionTitle}>Conexões aceitas</Text>
+            </View>
+
+            {accepted.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyText}>Nenhuma conexão ainda</Text>
+              </View>
+            ) : (
+              accepted.map((item) => (
+                <View key={item.id} style={styles.card}>
+                  <Image source={getAvatar(item)} style={styles.avatar} />
                   <View style={styles.cardInfo}>
                     <Text style={styles.name}>{item.name}</Text>
                     <Text style={styles.stack}>{item.stack}</Text>
                   </View>
-
-                  <View style={styles.pendingBadge}>
-                    <Text style={styles.pendingText}>Pendente</Text>
-                  </View>
+                  <TouchableOpacity
+                    style={styles.profileButton}
+                    onPress={() => (navigation as any).navigate("Connection", {
+                      name:  item.name,
+                      stack: item.stack,
+                      match: "100%",
+                      image: item.name,
+                    })}
+                  >
+                    <Text style={styles.profileButtonText}>Perfil</Text>
+                  </TouchableOpacity>
                 </View>
-              ))}
-            </>
-          )}
+              ))
+            )}
 
-        </ScrollView>
+            {/* ── ENVIADAS / AGUARDANDO ────────────────────────────────────── */}
+            {sent.length > 0 && (
+              <>
+                <View style={[styles.sectionHeader, { marginTop: 24 }]}>
+                  <Ionicons name="time-outline" size={18} color="#94A3B8" style={styles.sectionIcon} />
+                  <Text style={[styles.sectionTitle, { color: "#94A3B8" }]}>
+                    Aguardando resposta
+                  </Text>
+                </View>
+                {sent.map((item) => (
+                  <View key={item.id} style={[styles.card, styles.cardPending]}>
+                    <Image source={getAvatar(item)} style={styles.avatar} />
+                    <View style={styles.cardInfo}>
+                      <Text style={styles.name}>{item.name}</Text>
+                      <Text style={styles.stack}>{item.stack}</Text>
+                    </View>
+                    <View style={styles.pendingBadge}>
+                      <Text style={styles.pendingText}>Pendente</Text>
+                    </View>
+                  </View>
+                ))}
+              </>
+            )}
+
+          </ScrollView>
+        )}
       </SafeAreaView>
     </LinearGradient>
   );
