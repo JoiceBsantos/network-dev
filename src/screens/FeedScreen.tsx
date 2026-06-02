@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   FlatList,
@@ -87,6 +88,12 @@ export default function FeedScreen({ navigation }: FeedScreenProps) {
     loadFeed(0, true);
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      loadFeed(0, true);
+  }, [])
+);
+
   async function loadFeed(pageNum: number, reset: boolean = false) {
     try {
       if (reset) setLoading(true);
@@ -113,29 +120,46 @@ export default function FeedScreen({ navigation }: FeedScreenProps) {
               role:   userRes.data.position || userRes.data.stack || "",
             };
           } catch {
-            // Fallback de rede — nunca exibe "Você" ou "Dev" hardcoded
             userMap[uid] = { name: "Usuário", avatar: "https://i.pravatar.cc/150?img=32", role: "" };
           }
         })
       );
 
-      const mapped: Post[] = apiPosts.map((p) => {
-        const id   = p.id.toString();
-        const user = userMap[p.userId] || { name: "Usuário", avatar: "https://i.pravatar.cc/150?img=32", role: "" };
-        if (!likeAnimations[id]) {
-          likeAnimations[id] = new Animated.Value(1);
-        }
-        return {
-          id,
-          user:        user.name,
-          role:        user.role,
-          avatar:      user.avatar,
-          url:         p.imageUrl || "https://picsum.photos/id/1/800/800",
-          description: p.description || "",
-          likes:       0,
-          liked:       false,
-        };
-      });
+      const currentUserId = await getStoredUserId();
+
+      const mapped: Post[] = await Promise.all(
+        apiPosts.map(async (p) => {
+          const id   = p.id.toString();
+          const user = userMap[p.userId] || { name: "Usuário", avatar: "https://i.pravatar.cc/150?img=32", role: "" };
+
+          if (!likeAnimations[id]) {
+            likeAnimations[id] = new Animated.Value(1);
+          }
+
+          // Busca likes da API
+          let likesCount = 0;
+          let isLiked = false;
+          try {
+            const [likesRes, likedRes] = await Promise.all([
+              api.get(`/posts/${p.id}/likes/count`),
+              api.get(`/posts/${p.id}/likes/check`, { params: { userId: currentUserId } }),
+            ]);
+            likesCount = likesRes.data || 0;
+            isLiked = likedRes.data || false;
+          } catch {}
+
+          return {
+            id,
+            user:        user.name,
+            role:        user.role,
+            avatar:      user.avatar,
+            url:         p.imageUrl || "",
+            description: p.description || "",
+            likes:       likesCount,
+            liked:       isLiked,
+          };
+        })
+      );
 
       setPosts((prev) => reset ? mapped : [...prev, ...mapped]);
       setHasMore(!isLast);
@@ -181,9 +205,6 @@ export default function FeedScreen({ navigation }: FeedScreenProps) {
   };
 
   // ── Criar post ─────────────────────────────────────────────────────────────
-  // BUG 1 FIX: transformRequest: (data) => data impede o axios de reserializar
-  //            o FormData sem o boundary, que causava o 500 no Spring Boot.
-  // BUG 4 FIX: fallback usa nome real do AsyncStorage, nunca "Você"/"Dev".
 
   const handleCreatePost = async () => {
     if (!postText && !newImage) {
@@ -197,30 +218,32 @@ export default function FeedScreen({ navigation }: FeedScreenProps) {
       const userId = await getStoredUserId();
 
       if (newImage) {
-        // ── BUG 1 FIX ────────────────────────────────────────────────────────
-        const uriParts = newImage.split(".");
-        const ext      = uriParts[uriParts.length - 1]?.toLowerCase() || "jpg";
-        const mimeType = ext === "png" ? "image/png" : ext === "gif" ? "image/gif" : "image/jpeg";
-
         const formData = new FormData();
         formData.append("userId", userId || "1");
         formData.append("description", postText);
-        formData.append("image", {
-          // iOS adiciona "file://" que o fetch não entende — removemos aqui
-          uri:  Platform.OS === "ios" ? newImage.replace("file://", "") : newImage,
-          type: mimeType,
-          name: `post_${Date.now()}.${ext}`,
-        } as any);
 
-        // CRÍTICO: transformRequest: (data) => data impede o axios de converter
-        // o FormData para string, preservando o boundary do multipart.
+        if (Platform.OS === "web") { 
+          // No web, converte base64/blob URI para Blob real
+          const res = await fetch(newImage);
+          const blob = await res.blob();
+          const file = new File([blob], `post_${Date.now()}.jpg`, { type: blob.type || "image/jpeg" }); formData.append("image", file);
+        } 
+        else {
+          const uriParts = newImage.split(".");
+          const ext      = uriParts[uriParts.length - 1]?.toLowerCase() || "jpg";
+          const mimeType = ext === "png" ? "image/png" : ext === "gif" ? "image/gif" : "image/jpeg";
+          formData.append("image", {
+            uri:  Platform.OS === "ios" ? newImage.replace("file://", "") : newImage,
+            type: mimeType,
+            name: `post_${Date.now()}.${ext}`,
+          } as any);
+        }
+
         await api.post("/posts/create-with-image", formData, {
           headers: { "Content-Type": "multipart/form-data" },
           transformRequest: (data) => data,
         });
-        // ─────────────────────────────────────────────────────────────────────
       } else {
-        // Post só com texto
         await api.post("/posts", {
           userId:      Number(userId),
           description: postText,
@@ -236,18 +259,15 @@ export default function FeedScreen({ navigation }: FeedScreenProps) {
     } catch (error: any) {
       console.log("❌ Erro ao criar post:", error?.response?.data || error);
 
-      // ── BUG 1 FIX: não cria post fantasma em caso de 500 (erro do servidor)
       if (error?.response?.status === 500) {
         showAlert(
           "Erro no servidor",
           "Falha ao processar a imagem. Tente com uma foto menor (abaixo de 5 MB) ou sem imagem."
         );
         setPublishing(false);
-        return; // mantém o modal aberto para o usuário tentar novamente
+        return;
       }
 
-      // ── BUG 4 FIX: fallback local para erros de rede (sem conexão)
-      //    Busca o nome real salvo em AsyncStorage — nunca usa "Você"/"Dev"
       let nomeReal   = "Usuário";
       let roleReal   = "";
       let avatarReal = "https://i.pravatar.cc/150?img=32";
@@ -263,8 +283,8 @@ export default function FeedScreen({ navigation }: FeedScreenProps) {
 
       const newPost: Post = {
         id:          Date.now().toString(),
-        user:        nomeReal,   // ✅ nome real do usuário logado
-        role:        roleReal,   // ✅ cargo real, sem hardcode "Dev"
+        user:        nomeReal,
+        role:        roleReal,
         avatar:      avatarReal,
         url:         newImage || "https://picsum.photos/800/800",
         description: postText,
@@ -281,14 +301,15 @@ export default function FeedScreen({ navigation }: FeedScreenProps) {
     }
   };
 
-  // ── Like (local) ───────────────────────────────────────────────────────────
+  // ── Like (API + local) ─────────────────────────────────────────────────────
 
-  const handleLike = (id: string) => {
+  const handleLike = async (id: string) => {
     Animated.sequence([
       Animated.timing(likeAnimations[id], { toValue: 1.3, duration: 120, useNativeDriver: true }),
       Animated.timing(likeAnimations[id], { toValue: 1,   duration: 120, useNativeDriver: true }),
     ]).start();
 
+    // Atualiza visualmente de imediato (otimista)
     setPosts((prev) =>
       prev.map((post) =>
         post.id === id
@@ -296,6 +317,21 @@ export default function FeedScreen({ navigation }: FeedScreenProps) {
           : post
       )
     );
+
+    // Sincroniza com a API
+    try {
+      const userId = await getStoredUserId();
+      await api.post(`/posts/${id}/like`, null, { params: { userId } });
+    } catch {
+      // Reverte se falhar
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.id === id
+            ? { ...post, liked: !post.liked, likes: post.liked ? post.likes - 1 : post.likes + 1 }
+            : post
+        )
+      );
+    }
   };
 
   // ── Infinite scroll ────────────────────────────────────────────────────────
@@ -402,15 +438,17 @@ export default function FeedScreen({ navigation }: FeedScreenProps) {
                 <Text style={styles.description}>{item.description}</Text>
 
                 {/* IMAGE */}
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  onPress={() => { setSelectedImage(item.url); setSelectedPostId(item.id); }}
-                >
-                  <Image
-                    source={{ uri: item.url }}
-                    style={[styles.postImage, { height: isMobile ? 300 : 360 }]}
-                  />
-                </TouchableOpacity>
+                {item.url ? (
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPress={() => { setSelectedImage(item.url); setSelectedPostId(item.id); }}
+                  >
+                    <Image
+                      source={{ uri: item.url }}
+                      style={[styles.postImage, { height: isMobile ? 300 : 360 }]}
+                    />
+                  </TouchableOpacity>
+                ) : null}
 
                 {/* ACTIONS */}
                 <View style={styles.actions}>

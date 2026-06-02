@@ -30,7 +30,7 @@ type ConnectionScreenProps = {
   route:      RouteProp<RootStackParamList, "Connection">;
 };
 
-// ─── Componente ───────────────────────────────────────────────────────────────
+// ─── Imagens locais ───────────────────────────────────────────────────────────
 
 const DEV_IMAGES: Record<string, any> = {
   "Joice Barbosa":  require("../assets/joice.png"),
@@ -44,17 +44,71 @@ const DEV_IMAGES_BY_ID: Record<number, any> = {
   4: require("../assets/adriel.png"),
 };
 
+// ─── Componente ───────────────────────────────────────────────────────────────
+
 export default function ConnectionScreen({ navigation, route }: ConnectionScreenProps) {
-  const name     = route.params?.name   ?? "Adriel Pereira";
-  const stack    = route.params?.stack  ?? "Java + Spring Boot";
-  const match    = route.params?.match  ?? "91%";
+  const name       = route.params?.name   ?? "Adriel Pereira";
+  const stack      = route.params?.stack  ?? "Java + Spring Boot";
+  const match      = route.params?.match  ?? "91%";
   const receiverId = route.params?.userId ?? 4;
+
   const [showHandshake, setShowHandshake] = useState(false);
   const [showSuccess, setShowSuccess]     = useState(false);
+  const [alreadySent, setAlreadySent]     = useState(false);
+
+  // ── Dados do usuário logado ────────────────────────────────────────────────
+  const [myName, setMyName]                 = useState("Você");
+  const [myStack, setMyStack]               = useState("");
+  const [myProfileImage, setMyProfileImage] = useState<string | null>(null);
+
+  // ── Dados do dev detectado ─────────────────────────────────────────────────
+  const [devObjective, setDevObjective]       = useState("Buscando networking em mobile e projetos IoT.");
+  const [devProfileImage, setDevProfileImage] = useState<string | null>(null);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   const { isMobile, isDesktop } = useResponsive();
+
+  // ── Carrega dados ─────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    loadMyData();
+    loadDevData();
+    checkConnectionStatus();
+  }, []);
+
+  async function loadMyData() {
+    try {
+      const id = await getStoredUserId();
+      if (!id) return;
+      const response = await api.get(`/users/${id}`);
+      setMyName(response.data.name?.split(" ")[0] || "Você");
+      setMyStack(response.data.stack?.split(", ")[0] || response.data.position || "");
+      setMyProfileImage(response.data.profileImageUrl || null);
+    } catch (error) {
+      console.log("Erro ao carregar dados do usuário logado:", error);
+    }
+  }
+
+  async function loadDevData() {
+    try {
+      const response = await api.get(`/users/${receiverId}`);
+      setDevObjective(response.data.bio || "Buscando networking em mobile e projetos IoT.");
+      setDevProfileImage(response.data.profileImageUrl || null);
+    } catch (error) {
+      console.log("Erro ao carregar dados do dev detectado:", error);
+    }
+  }
+
+  async function checkConnectionStatus() {
+    try {
+      const myId = await getStoredUserId();
+      if (!myId) return;
+      const response = await api.get(`/connections/sent/${myId}`);
+      const sent = response.data.some((c: any) => c.receiverId === receiverId);
+      setAlreadySent(sent);
+    } catch {}
+  }
 
   // ── Animação de pulso ──────────────────────────────────────────────────────
 
@@ -84,10 +138,14 @@ export default function ConnectionScreen({ navigation, route }: ConnectionScreen
       }).catch(() => {});
 
       // Envia solicitação de conexão real
-      await api.post("/connections/request", {
-        requesterId: Number(myId),
-        receiverId:  receiverId,
+      await api.post("/connections/request", null, {
+        params: {
+          requesterId: Number(myId),
+          receiverId:  receiverId,
+        },
       }).catch(() => {});
+
+      setAlreadySent(true);
 
     } catch (e) {
       console.log("Erro ao enviar solicitação:", e);
@@ -97,6 +155,22 @@ export default function ConnectionScreen({ navigation, route }: ConnectionScreen
       setShowHandshake(false);
       setShowSuccess(true);
     }, 2200);
+  }
+
+  // ── Avatar do usuário logado ───────────────────────────────────────────────
+
+  function getMyAvatar() {
+    if (myProfileImage) return { uri: myProfileImage };
+    return require("../assets/me.png");
+  }
+
+  // ── Avatar do dev detectado ────────────────────────────────────────────────
+
+  function getDevAvatar() {
+    if (devProfileImage) return { uri: devProfileImage };
+    if (DEV_IMAGES_BY_ID[receiverId]) return DEV_IMAGES_BY_ID[receiverId];
+    if (DEV_IMAGES[name]) return DEV_IMAGES[name];
+    return require("../assets/me.png");
   }
 
   // ─── Render ───────────────────────────────────────────────────────────────
@@ -145,11 +219,11 @@ export default function ConnectionScreen({ navigation, route }: ConnectionScreen
                 {/* Você */}
                 <View style={styles.userContainer}>
                   <Image
-                    source={require("../assets/me.png")}
+                    source={getMyAvatar()}
                     style={[styles.avatar, { width: isMobile ? 92 : 130, height: isMobile ? 92 : 130, borderRadius: isMobile ? 46 : 65 }]}
                   />
-                  <Text style={[styles.userName, { fontSize: isMobile ? 18 : 24 }]}>Você</Text>
-                  <Text style={[styles.stack, { fontSize: isMobile ? 13 : 15 }]}>React Native</Text>
+                  <Text style={[styles.userName, { fontSize: isMobile ? 18 : 24 }]}>{myName}</Text>
+                  <Text style={[styles.stack, { fontSize: isMobile ? 13 : 15 }]}>{myStack}</Text>
                 </View>
 
                 {/* Linha de conexão */}
@@ -161,7 +235,7 @@ export default function ConnectionScreen({ navigation, route }: ConnectionScreen
                 {/* Dev detectado */}
                 <View style={styles.userContainer}>
                   <Image
-                    source={DEV_IMAGES_BY_ID[receiverId] || DEV_IMAGES[name]}
+                    source={getDevAvatar()}
                     style={[styles.avatar, { width: isMobile ? 92 : 130, height: isMobile ? 92 : 130, borderRadius: isMobile ? 46 : 65 }]}
                   />
                   <Text style={[styles.userName, { fontSize: isMobile ? 18 : 24 }]}>{name}</Text>
@@ -199,17 +273,22 @@ export default function ConnectionScreen({ navigation, route }: ConnectionScreen
                 Objetivo Profissional
               </Text>
               <Text style={[styles.objectiveText, { fontSize: isMobile ? 15 : 17 }]}>
-                Buscando networking em mobile e projetos IoT.
+                {devObjective}
               </Text>
             </View>
 
             {/* ── BOTÃO CONECTAR ──────────────────────────────────────── */}
             <TouchableOpacity
-              style={[styles.connectButton, { width: isMobile ? "100%" : 420, alignSelf: "center", marginTop: isMobile ? 18 : 30 }]}
-              onPress={handleConnection}
+              style={[
+                styles.connectButton,
+                { width: isMobile ? "100%" : 420, alignSelf: "center", marginTop: isMobile ? 18 : 30 },
+                alreadySent && styles.connectButtonPending,
+              ]}
+              onPress={alreadySent ? undefined : handleConnection}
+              disabled={alreadySent}
             >
               <Text style={[styles.connectButtonText, { fontSize: isMobile ? 16 : 18 }]}>
-                Enviar Conexão
+                {alreadySent ? "⏳ Solicitação já enviada" : "Enviar Conexão"}
               </Text>
             </TouchableOpacity>
 
@@ -221,7 +300,6 @@ export default function ConnectionScreen({ navigation, route }: ConnectionScreen
           <View style={styles.handshakeOverlay}>
             <View style={styles.handshakeGlow} />
 
-            {/* Container com tamanho igual ao LoadingScreen */}
             <View style={{ width: isMobile ? 220 : 280, height: isMobile ? 220 : 280 }}>
               <LottieView
                 source={require("../assets/handshake.json")}
@@ -254,7 +332,6 @@ export default function ConnectionScreen({ navigation, route }: ConnectionScreen
                 style={styles.successButton}
                 onPress={() => {
                   setShowSuccess(false);
-                  // Volta para as tabs (Home)
                   navigation.navigate("Main");
                 }}
               >
@@ -272,12 +349,15 @@ export default function ConnectionScreen({ navigation, route }: ConnectionScreen
 // ─── Estilos ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+
   container: {
     flex: 1,
   },
+
   content: {
     paddingTop: 20,
   },
+
   backgroundGlowTop: {
     position: "absolute",
     top: -220,
@@ -287,21 +367,25 @@ const styles = StyleSheet.create({
     borderRadius: 340,
     backgroundColor: "rgba(37,99,235,0.16)",
   },
+
   backButton: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 28,
   },
+
   backText: {
     color: "#4DA6FF",
     fontSize: 16,
     marginLeft: 8,
   },
+
   title: {
     color: "#fff",
     fontWeight: "800",
     textAlign: "center",
   },
+
   subtitle: {
     color: "#94A3B8",
     textAlign: "center",
@@ -310,6 +394,7 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     alignSelf: "center",
   },
+
   connectionWrapper: {
     backgroundColor: "rgba(15,23,42,0.65)",
     borderRadius: 32,
@@ -318,37 +403,45 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     overflow: "hidden",
   },
+
   connectionContainer: {
     alignItems: "center",
     justifyContent: "space-between",
   },
+
   userContainer: {
     alignItems: "center",
   },
+
   avatar: {
     borderWidth: 3,
     borderColor: "#4DA6FF",
   },
+
   userName: {
     color: "#fff",
     fontWeight: "800",
     marginTop: 18,
     textAlign: "center",
   },
+
   stack: {
     color: "#4DA6FF",
     marginTop: 6,
     textAlign: "center",
   },
+
   lineContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
+
   line: {
     backgroundColor: "rgba(77,166,255,0.3)",
     borderRadius: 99,
   },
+
   connectionGlow: {
     position: "absolute",
     width: 24,
@@ -360,6 +453,7 @@ const styles = StyleSheet.create({
     shadowRadius: 22,
     elevation: 12,
   },
+
   matchCard: {
     backgroundColor: "rgba(15,23,42,0.65)",
     borderWidth: 1,
@@ -368,11 +462,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     marginBottom: 20,
   },
+
   matchTitle: {
     color: "#CBD5E1",
     fontSize: 15,
     textAlign: "center",
   },
+
   matchValue: {
     color: "#4DA6FF",
     fontWeight: "bold",
@@ -380,14 +476,17 @@ const styles = StyleSheet.create({
     textAlign: "center",
     width: "100%",
   },
+
   matchDescription: {
     color: "#ccc",
     textAlign: "center",
     lineHeight: 26,
   },
+
   infoContainer: {
     marginBottom: 22,
   },
+
   infoBadge: {
     flex: 1,
     backgroundColor: "rgba(15,23,42,0.65)",
@@ -397,12 +496,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.04)",
   },
+
   infoText: {
     color: "#fff",
     textAlign: "center",
     fontSize: 15,
     fontWeight: "600",
   },
+
   objectiveCard: {
     backgroundColor: "rgba(77,166,255,0.05)",
     borderRadius: 24,
@@ -410,15 +511,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(77,166,255,0.04)",
   },
+
   objectiveTitle: {
     color: "#4DA6FF",
     fontWeight: "800",
     marginBottom: 12,
   },
+
   objectiveText: {
     color: "#ddd",
     lineHeight: 28,
   },
+
   connectButton: {
     backgroundColor: "#2563EB",
     paddingVertical: 18,
@@ -430,22 +534,35 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     elevation: 10,
   },
+
+  connectButtonPending: {
+    backgroundColor: "rgba(255,255,255,0.08)",
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+
   connectButtonText: {
     color: "#fff",
     fontWeight: "800",
   },
+
   handshakeOverlay: {
     position: "absolute",
-    top: 0, left: 0, right: 0, bottom: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "rgba(2,6,23,0.92)",
     justifyContent: "center",
     alignItems: "center",
   },
+
   handshakeText: {
     color: "#fff",
     fontWeight: "700",
     marginTop: 14,
   },
+
   handshakeGlow: {
     position: "absolute",
     width: 220,
@@ -453,6 +570,7 @@ const styles = StyleSheet.create({
     borderRadius: 220,
     backgroundColor: "rgba(59,130,246,0.12)",
   },
+
   successOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.65)",
@@ -460,6 +578,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 20,
   },
+
   successCard: {
     width: "100%",
     maxWidth: 420,
@@ -470,12 +589,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.06)",
   },
+
   successTitle: {
     color: "#fff",
     fontSize: 28,
     fontWeight: "800",
     marginTop: 20,
   },
+
   successText: {
     color: "#CBD5E1",
     fontSize: 16,
@@ -483,6 +604,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     lineHeight: 24,
   },
+
   successButton: {
     backgroundColor: "#2563EB",
     width: "100%",
@@ -491,10 +613,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 26,
   },
+
   successButtonText: {
     color: "#fff",
     fontWeight: "800",
     fontSize: 16,
   },
+
   handshakeAnimation: {},
+
 });

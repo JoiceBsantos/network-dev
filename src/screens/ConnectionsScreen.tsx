@@ -75,6 +75,7 @@ export default function ConnectionsScreen({ navigation }: ConnectionsScreenProps
   const [accepted, setAccepted]   = useState<Connection[]>([]);
   const [sent, setSent]           = useState<Connection[]>([]);
   const [received, setReceived]   = useState<Connection[]>([]);
+  const [declined, setDeclined]   = useState<Connection[]>([]);
   const [loading, setLoading]     = useState(true);
   const [myUserId, setMyUserId]   = useState<number | null>(null);
 
@@ -92,18 +93,19 @@ export default function ConnectionsScreen({ navigation }: ConnectionsScreenProps
       const uid = Number(id);
       setMyUserId(uid);
 
-      const [receivedRes, sentRes, acceptedRes] = await Promise.all([
+      const [receivedRes, sentRes, acceptedRes, declinedRes] = await Promise.all([
         api.get(`/connections/received/${uid}`),
         api.get(`/connections/sent/${uid}`),
         api.get(`/connections/accepted/${uid}`),
+        api.get(`/connections/declined/${uid}`),
       ]);
 
       setReceived(await mapConnections(receivedRes.data, uid));
       setSent(await mapConnections(sentRes.data, uid));
       setAccepted(await mapConnections(acceptedRes.data, uid));
+      setDeclined(await mapConnections(declinedRes.data, uid));
     } catch (error) {
       console.log("Erro ao carregar conexões:", error);
-      // Fallback mock
       setReceived([{ id: "3", name: "Luiz Henrique", stack: "Node.js + DevOps", avatar: null }]);
       setSent([{ id: "2", name: "Adriel Pereira", stack: "Java + Spring Boot", avatar: null }]);
       setAccepted([{ id: "1", name: "Joice Barbosa", stack: "React Native", avatar: null }]);
@@ -133,8 +135,8 @@ export default function ConnectionsScreen({ navigation }: ConnectionsScreenProps
   }
 
   function getAvatar(item: Connection) {
-    if (item.userId && DEV_IMAGES_BY_ID[item.userId]) return DEV_IMAGES_BY_ID[item.userId];
     if (item.avatar) return { uri: item.avatar };
+    if (DEV_IMAGES_BY_ID[item.userId ?? 0]) return DEV_IMAGES_BY_ID[item.userId ?? 0];
     if (DEV_IMAGES[item.name]) return DEV_IMAGES[item.name];
     return { uri: "https://i.pravatar.cc/150?img=32" };
   }
@@ -148,7 +150,6 @@ export default function ConnectionsScreen({ navigation }: ConnectionsScreenProps
       setReceived((prev) => prev.filter((r) => r.id !== item.id));
       showAlert("Conexão aceita! 🎉", `Você e ${item.name} agora estão conectados.`);
     } catch {
-      // Fallback local
       setAccepted((prev) => [...prev, item]);
       setReceived((prev) => prev.filter((r) => r.id !== item.id));
       showAlert("Conexão aceita! 🎉", `Você e ${item.name} agora estão conectados.`);
@@ -166,6 +167,12 @@ export default function ConnectionsScreen({ navigation }: ConnectionsScreenProps
       setReceived((prev) => prev.filter((r) => r.id !== item.id));
       showAlert("Solicitação recusada", `A solicitação de ${item.name} foi removida.`);
     }
+  }
+
+  // ── Dispensar notificação de recusado ──────────────────────────────────────
+
+  function handleDismissDeclined(item: Connection) {
+    setDeclined((prev) => prev.filter((d) => d.id !== item.id));
   }
 
   // ─── Render ─────────────────────────────────────────────────────────────────
@@ -205,10 +212,42 @@ export default function ConnectionsScreen({ navigation }: ConnectionsScreenProps
               </View>
             </View>
 
+            {/* ── SOLICITAÇÕES RECUSADAS (notificação) ─────────────────────── */}
+            {declined.length > 0 && (
+              <>
+                <View style={styles.sectionHeader}>
+                  <Ionicons name="close-circle" size={18} color="#EF4444" style={styles.sectionIcon} />
+                  <Text style={[styles.sectionTitle, { color: "#EF4444" }]}>
+                    Solicitações recusadas
+                  </Text>
+                  <View style={[styles.sectionBadge, { backgroundColor: "rgba(239,68,68,0.15)" }]}>
+                    <Text style={[styles.sectionBadgeText, { color: "#EF4444" }]}>{declined.length}</Text>
+                  </View>
+                </View>
+
+                {declined.map((item) => (
+                  <View key={item.id} style={[styles.card, styles.cardDeclined]}>
+                    <Image source={getAvatar(item)} style={styles.avatar} />
+                    <View style={styles.cardInfo}>
+                      <Text style={styles.name}>{item.name}</Text>
+                      <Text style={styles.stack}>{item.stack}</Text>
+                      <Text style={styles.declinedLabel}>Recusou sua solicitação ❌</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.dismissButton}
+                      onPress={() => handleDismissDeclined(item)}
+                    >
+                      <Ionicons name="close" size={18} color="#94A3B8" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </>
+            )}
+
             {/* ── SOLICITAÇÕES RECEBIDAS ───────────────────────────────────── */}
             {received.length > 0 && (
               <>
-                <View style={styles.sectionHeader}>
+                <View style={[styles.sectionHeader, { marginTop: declined.length > 0 ? 24 : 0 }]}>
                   <Ionicons name="notifications" size={18} color="#F59E0B" style={styles.sectionIcon} />
                   <Text style={[styles.sectionTitle, { color: "#F59E0B" }]}>
                     Solicitações recebidas
@@ -240,7 +279,7 @@ export default function ConnectionsScreen({ navigation }: ConnectionsScreenProps
             )}
 
             {/* ── CONEXÕES ACEITAS ─────────────────────────────────────────── */}
-            <View style={[styles.sectionHeader, { marginTop: received.length > 0 ? 24 : 0 }]}>
+            <View style={[styles.sectionHeader, { marginTop: received.length > 0 || declined.length > 0 ? 24 : 0 }]}>
               <Ionicons name="people" size={18} color="#3B82F6" style={styles.sectionIcon} />
               <Text style={styles.sectionTitle}>Conexões aceitas</Text>
             </View>
@@ -260,10 +299,11 @@ export default function ConnectionsScreen({ navigation }: ConnectionsScreenProps
                   <TouchableOpacity
                     style={styles.profileButton}
                     onPress={() => (navigation as any).navigate("Connection", {
-                      name:  item.name,
-                      stack: item.stack,
-                      match: "100%",
-                      image: item.name,
+                      name:   item.name,
+                      stack:  item.stack,
+                      match:  "100%",
+                      image:  item.name,
+                      userId: item.userId,
                     })}
                   >
                     <Text style={styles.profileButtonText}>Perfil</Text>
@@ -384,6 +424,11 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(245,158,11,0.05)",
   },
 
+  cardDeclined: {
+    borderColor: "rgba(239,68,68,0.25)",
+    backgroundColor: "rgba(239,68,68,0.05)",
+  },
+
   cardPending: {
     borderColor: "rgba(148,163,184,0.15)",
     opacity: 0.8,
@@ -419,6 +464,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
+  declinedLabel: {
+    color: "#EF4444",
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: "600",
+  },
+
   actionButtons: {
     flexDirection: "row",
     gap: 8,
@@ -440,6 +492,15 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     justifyContent: "center",
     alignItems: "center",
+  },
+
+  dismissButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.05)",
   },
 
   profileButton: {

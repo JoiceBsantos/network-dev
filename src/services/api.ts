@@ -3,18 +3,17 @@ import { Platform } from 'react-native';
 
 // ─── URL base ─────────────────────────────────────────────────────────────────
 // Web: usa localhost
-// Celular: substitua pelo IP atual da sua máquina (ipconfig → IPv4)
+// Celular: usa o IP da máquina na rede local
 
 const baseURL = Platform.OS === 'web'
   ? 'http://localhost:8080/api'
-  : 'https://handmade-mardi-obstruct.ngrok-free.dev/api';
+  : 'http://10.109.64.34:8080/api'; // ← troque pelo seu IP (ipconfig → IPv4)
 
 export const api = axios.create({
   baseURL,
   timeout: 8000,
   headers: {
     'Content-Type': 'application/json',
-    'ngrok-skip-browser-warning': 'true',
   },
 });
 

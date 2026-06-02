@@ -65,13 +65,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const fadeAnim   = useRef(new Animated.Value(0)).current;
   const pulseAnim  = useRef(new Animated.Value(1)).current;
 
-  const [isSearching, setIsSearching]     = useState(false);
-  const [hasSearched, setHasSearched]     = useState(false);
-  const [developers, setDevelopers]       = useState<Developer[]>([]);
-  const [foundCount, setFoundCount]       = useState(0);
-  const [userName, setUserName]           = useState("Desenvolvedor");
-  const [pendingCount, setPendingCount]   = useState(0);
-  const [profileImage, setProfileImage]   = useState<string | null>(null);
+  const [isSearching, setIsSearching]         = useState(false);
+  const [hasSearched, setHasSearched]         = useState(false);
+  const [developers, setDevelopers]           = useState<Developer[]>([]);
+  const [foundCount, setFoundCount]           = useState(0);
+  const [userName, setUserName]               = useState("Desenvolvedor");
+  const [pendingCount, setPendingCount]       = useState(0);
+  const [profileImage, setProfileImage]       = useState<string | null>(null);
+  const [sentConnections, setSentConnections] = useState<number[]>([]);
 
   const { width, isMobile, isDesktop } = useResponsive();
 
@@ -79,7 +80,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   async function handleLogout() {
     await logout();
-    // Volta para o stack raiz — cast necessário pois logout sai das tabs
     (navigation as any).replace("Login");
   }
 
@@ -90,13 +90,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       const id = await getStoredUserId();
       if (id) {
         try {
-          const [connRes, userRes] = await Promise.all([
-            api.get(`/connections/received/${id}`),
+          const [userRes, sentRes] = await Promise.all([
             api.get(`/users/${id}`),
+            api.get(`/connections/sent/${id}`),
           ]);
-          setPendingCount(connRes.data.length || 0);
           if (userRes.data.name) setUserName(userRes.data.name.split(" ")[0]);
           if (userRes.data.profileImageUrl) setProfileImage(userRes.data.profileImageUrl);
+          const sentIds = sentRes.data.map((c: any) => c.receiverId);
+          setSentConnections(sentIds);
         } catch {}
       }
     })();
@@ -104,16 +105,19 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   // ── Busca devs ────────────────────────────────────────────────────────────
 
-  function handleSearchDevs() {
+  async function handleSearchDevs() {
     rotateAnim.setValue(0);
     setIsSearching(true);
     setFoundCount(0);
 
-    [1000, 2200, 3500, 4500].forEach((delay, i) => {
+    [1000, 2200].forEach((delay, i) => {
       setTimeout(() => setFoundCount(i + 1), delay);
     });
 
+    const storedId = await getStoredUserId();
+
     const randomDevelopers = [...allDevelopers]
+      .filter((dev) => dev.userId !== Number(storedId))
       .sort(() => 0.5 - Math.random())
       .slice(0, 3)
       .map((dev) => ({
@@ -180,7 +184,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             maxWidth: 1400,
             alignSelf: "center",
             paddingHorizontal: isMobile ? 18 : 32,
-            // Espaço para a tab bar não sobrepor o conteúdo
             paddingBottom: 80,
             flex: 1,
           }}
@@ -207,9 +210,8 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                   <Text style={styles.welcome}>Que bom te ver por aqui!</Text>
                 </View>
 
-                {/* Avatar — abre aba Perfil (desktop mantém sino ao lado) */}
+                {/* Avatar */}
                 <View style={styles.headerRight}>
-                  {/* Sino visível só no desktop ao lado do avatar */}
                   {!isMobile && (
                     <TouchableOpacity
                       style={styles.bellButton}
@@ -239,7 +241,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 </View>
               </View>
 
-              {/* Botão de logout — Feed e MyProfile agora estão na tab bar */}
               <View
                 style={[
                   styles.topActions,
@@ -367,7 +368,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                   </Text>
                 </View>
 
-                {/* Badge — abre aba Conexões */}
                 <TouchableOpacity style={styles.badge} onPress={() => navigation.navigate("Connections")}>
                   <Text style={styles.badgeText}>{developers.length} próximos</Text>
                 </TouchableOpacity>
@@ -428,16 +428,24 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                       <Text style={styles.distance}>📍 {item.distance}</Text>
 
                       <TouchableOpacity
-                        style={styles.connectButton}
-                        onPress={() => (navigation as any).navigate("Connection", {
-                          name:   item.name,
-                          stack:  item.stack,
-                          match:  item.match,
-                          image:  item.name,
-                          userId: item.userId,
-                        })}
+                        style={[
+                          styles.connectButton,
+                          sentConnections.includes(item.userId ?? 0) && styles.connectButtonPending,
+                        ]}
+                        onPress={() => {
+                          if (sentConnections.includes(item.userId ?? 0)) return;
+                          (navigation as any).navigate("Connection", {
+                            name:   item.name,
+                            stack:  item.stack,
+                            match:  item.match,
+                            image:  item.name,
+                            userId: item.userId,
+                          });
+                        }}
                       >
-                        <Text style={styles.connectText}>Conectar</Text>
+                        <Text style={styles.connectText}>
+                          {sentConnections.includes(item.userId ?? 0) ? "⏳ Aguardando resposta" : "Conectar"}
+                        </Text>
                       </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
@@ -552,7 +560,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
-
   bellFixed: {
     position: "absolute",
     top: 40,
@@ -567,7 +574,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.12)",
   },
-
   bellButton: {
     position: "relative",
     width: 44,
@@ -579,7 +585,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.12)",
   },
-
   bellBadge: {
     position: "absolute",
     top: 4,
@@ -591,13 +596,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
   bellBadgeText: {
     color: "#fff",
     fontSize: 9,
     fontWeight: "800",
   },
-
   profileImage: {
     width: 60,
     height: 60,
@@ -915,6 +918,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 12,
     elevation: 8,
+  },
+  connectButtonPending: {
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+    shadowOpacity: 0,
+    elevation: 0,
   },
   connectText: {
     color: "#FFFFFF",

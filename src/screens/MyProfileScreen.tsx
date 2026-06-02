@@ -14,8 +14,8 @@ import {
 } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState, useEffect, useCallback } from "react";   // ← useCallback adicionado
-import { useFocusEffect } from "@react-navigation/native";   // ← BUG 3 FIX: import
+import { useState, useEffect, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { api } from "../services/api";
@@ -109,15 +109,11 @@ export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
 
   const [connectionCount, setConnectionCount] = useState(0);
 
-  // BUG 3 FIX: useEffect carrega apenas perfil e conexões (dados que não mudam
-  // com frequência). Os posts são carregados pelo useFocusEffect abaixo.
   useEffect(() => {
     loadUserData();
     loadConnectionCount();
   }, []);
 
-  // BUG 3 FIX: useFocusEffect dispara toda vez que a aba Perfil recebe foco,
-  // garantindo que posts criados no Feed apareçam aqui sem reiniciar o app.
   useFocusEffect(
     useCallback(() => {
       loadUserPosts();
@@ -148,8 +144,8 @@ export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
     try {
       const id = await getStoredUserId();
       if (!id) return;
-      const response = await api.get(`/connections/count/${id}`);
-      setConnectionCount(response.data.count || 0);
+      const response = await api.get(`/connections/accepted/${id}`);
+      setConnectionCount(response.data.length || 0);
     } catch (error) {
       console.log("Erro ao carregar conexões:", error);
     }
@@ -169,7 +165,7 @@ export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
         .filter((p: any) => p.userId === Number(id))
         .map((p: any) => ({
           id:          p.id.toString(),
-          url:         p.imageUrl || "https://picsum.photos/id/1/400/400",
+          url:         p.imageUrl || "",
           description: p.description || "",
           likes:       0,
         }));
@@ -190,20 +186,16 @@ export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
   }
 
   // ─── Deletar post ────────────────────────────────────────────────────────────
-  // BUG 2 FIX: antes só filtrava o estado local. Agora chama api.delete()
-  // e só remove do estado após confirmação da API.
 
   async function handleDeletePost(postId: string) {
     const doDelete = async () => {
       try {
         await api.delete(`/posts/${postId}`);
-        // Remove localmente apenas após sucesso na API
         setMyPosts((prev) => prev.filter((p) => p.id !== postId));
         setSelectedPost(null);
       } catch (error: any) {
         const status = error?.response?.status;
         if (status === 404) {
-          // Post já não existe no banco — remove do estado mesmo assim
           setMyPosts((prev) => prev.filter((p) => p.id !== postId));
           setSelectedPost(null);
         } else if (status === 403) {
@@ -290,10 +282,19 @@ export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
     try {
       const id = await getStoredUserId();
       const formData = new FormData();
-      formData.append("file", { uri, type: "image/jpeg", name: "avatar.jpg" } as any);
+
+      if (Platform.OS === "web") {
+        const res = await fetch(uri);
+        const blob = await res.blob();
+        const file = new File([blob], "avatar.jpg", { type: blob.type || "image/jpeg" });
+        formData.append("file", file);
+      } else {
+        formData.append("file", { uri, type: "image/jpeg", name: "avatar.jpg" } as any);
+      }
+
       await api.post(`/users/${id}/upload-profile-image`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
-        transformRequest: (data) => data, // preserva o boundary do FormData
+        transformRequest: (data) => data,
       });
       showAlert("Sucesso", "Foto de perfil atualizada!");
       loadUserData();
@@ -470,7 +471,15 @@ export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
                           activeOpacity={0.85}
                           style={[styles.postThumb, { width: postSize, height: postSize }]}
                         >
-                          <Image source={{ uri: post.url }} style={styles.postThumbImage} />
+                          {post.url ? (
+                            <Image source={{ uri: post.url }} style={styles.postThumbImage} />
+                          ) : (
+                            <View style={styles.postThumbText}>
+                              <Text style={styles.postThumbTextContent} numberOfLines={4}>
+                                {post.description}
+                              </Text>
+                            </View>
+                          )}
                           <View style={styles.postThumbOverlay}>
                             <Ionicons name="heart" size={12} color="#fff" />
                             <Text style={styles.postThumbLikes}>{post.likes}</Text>
@@ -589,11 +598,13 @@ export default function MyProfileScreen({ navigation }: MyProfileScreenProps) {
 
           {selectedPost && (
             <View style={styles.modalContent}>
-              <Image
-                source={{ uri: selectedPost.url }}
-                style={styles.modalImage}
-                resizeMode="contain"
-              />
+              {selectedPost.url ? (
+                <Image
+                  source={{ uri: selectedPost.url }}
+                  style={styles.modalImage}
+                  resizeMode="contain"
+                />
+              ) : null}
               <View style={styles.modalInfo}>
 
                 {isEditingPost ? (
@@ -1072,6 +1083,23 @@ const styles = StyleSheet.create({
   postThumbImage: {
     width: "100%",
     height: "100%",
+  },
+
+  postThumbText: {
+    flex: 1,
+    backgroundColor: "rgba(59,130,246,0.08)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 8,
+    borderWidth: 1,
+    borderColor: "rgba(59,130,246,0.15)",
+  },
+
+  postThumbTextContent: {
+    color: "#D7E3FF",
+    fontSize: 11,
+    textAlign: "center",
+    lineHeight: 16,
   },
 
   postThumbOverlay: {
