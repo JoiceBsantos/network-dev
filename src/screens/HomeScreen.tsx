@@ -939,7 +939,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 16,
     marginTop: 18,
-    marginBottom: 100,
+    marginBottom: 20,
   },
   searchAgainText: {
     color: "#FFFFFF",
