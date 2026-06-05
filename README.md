@@ -245,6 +245,10 @@ npx expo install --fix
 
 ---
 
+## 📄 Documentação
+
+[Network Dev — Documentação ExpoTech 2026](./NetworkDev_ExpoTech2026_UniFECAF.pdf)
+
 ## 📄 Licença
 
 Projeto desenvolvido para fins acadêmicos e educacionais.
